@@ -1,0 +1,43 @@
+
+[indentation]
+indent_width=2
+indent_type=0
+indent_hard_tab_width=8
+detect_indent=false
+indent_mode=2
+
+[project]
+name=sxc
+base_path=/home/hef/Desktop
+description=
+
+[long line marker]
+long_line_behaviour=1
+long_line_column=72
+
+[files]
+current_page=4
+FILE_NAME_0=0;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc.h;0;2
+FILE_NAME_1=1166;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_context.c;0;2
+FILE_NAME_2=1391;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_map.c;0;2
+FILE_NAME_3=136;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_value.c;0;2
+FILE_NAME_4=179;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_function.c;0;2
+FILE_NAME_5=923;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_string.c;0;2
+FILE_NAME_6=9183;C;0;0;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/sxc_load.c;0;2
+FILE_NAME_7=1721;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/lua51/lua51_sxc_map.c;0;2
+FILE_NAME_8=1122;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/lua51/lua51_sxc.c;0;2
+FILE_NAME_9=397;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/lua51/lua51_sxc.h;0;2
+FILE_NAME_10=299;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/lua51/lua51_sxc_context.c;0;2
+FILE_NAME_11=627;C;0;16;0;1;0;/home/hef/.gvfs/projects on blackiron/sxc/src/lua51/lua51_sxc_function.c;0;2
+
+[build-menu]
+CFT_00_LB=_Compile
+CFT_00_CM=gcc -Wall -std=c89 -D_UNIX_ -c "%f"
+CFT_00_WD=
+CFT_01_LB=_Build
+CFT_01_CM=gcc -Wall -std=c89 -D_UNIX_ -o "%e" "%f"
+CFT_01_WD=
+filetypes=C;
+NF_00_LB=_Make
+NF_00_CM=make
+NF_00_WD=../build/linux/gmake

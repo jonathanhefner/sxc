@@ -1,0 +1,6 @@
+# Ignore intermediate build files
+*.[do]
+
+# Ignore build results
+*.so
+
