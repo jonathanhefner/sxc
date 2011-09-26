@@ -1,6 +1,7 @@
-# Ignore intermediate build files
-*.[do]
+# Ignore binaries
+bin/
 
-# Ignore build results
-*.so
+# Ignore build files, except make files on Linux (for convenience)
+build/
+!build/linux/gmake/
 
