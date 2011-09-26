@@ -64,7 +64,7 @@ static void map_strset(SxcMap* map, char* key, SxcValue* value) {
     index into the stack */
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
-  int prev_index = (int)state;
+  int prev_index = (int)(long int)state;
 
   if (prev_index == 0) {
     lua_pushnil(L);
@@ -83,7 +83,7 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
 
     if (return_key->type == sxc_type_integer || return_key->type == sxc_type_string) {
       get_value(map->context, -1, return_value);
-      return (void*)(lua_gettop(L) - 1);
+      return (void*)(long int)(lua_gettop(L) - 1);
     }
 
     lua_pop(L, 1);
