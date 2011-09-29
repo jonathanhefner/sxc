@@ -4,7 +4,7 @@ static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
   /* deal with 0-based vs 1-based indexing */
-  if (map->is_list < 0) {
+  if (map->is_list == TABLE_MAYBE_LIST) {
     map->is_list = table_is_list(L, *(int*)map->underlying);
   }
   if (map->is_list) {
@@ -22,10 +22,17 @@ static void map_intset(SxcMap* map, int key, SxcValue* value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
   /* deal with 0-based vs 1-based indexing */
-  if (map->is_list < 0) {
+  /* WARNING this logic is not fault-proof.  For example, if a table is supposed
+      to be a list with nil as its first and only element, and a library's first
+      interaction with the table is to set its second element, the table will
+      still be marked as a list, but the second element will become the first.
+      This is because a first and only element of nil is no different than being
+      empty, and because "empty" tables can be ambiguously interpreted as
+      either lists or hashmaps. */
+  if (map->is_list == TABLE_MAYBE_LIST) {
     map->is_list = table_is_list(L, *(int*)map->underlying);
-    if (map->is_list < 0) {
-      map->is_list = key == 0;
+    if (map->is_list == TABLE_MAYBE_LIST) {
+      map->is_list = key == 1 ? TABLE_IS_LIST : TABLE_NOT_LIST;
     }
   }
   if (map->is_list) {
@@ -50,8 +57,8 @@ static void map_strset(SxcMap* map, char* key, SxcValue* value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
   /* help deal with 0-based vs 1-based indexing */
-  if (map->is_list < 0) {
-    map->is_list = 0;
+  if (map->is_list == TABLE_MAYBE_LIST) {
+    map->is_list = TABLE_NOT_LIST;
   }
 
   push_value(map->context, value);
@@ -64,7 +71,7 @@ static void map_strset(SxcMap* map, char* key, SxcValue* value) {
     index into the stack */
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
-  int prev_index = (int)(long int)state;
+  int prev_index = PTR2INT(state);
 
   if (prev_index == 0) {
     lua_pushnil(L);
@@ -83,7 +90,7 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
 
     if (return_key->type == sxc_type_integer || return_key->type == sxc_type_string) {
       get_value(map->context, -1, return_value);
-      return (void*)(long int)(lua_gettop(L) - 1);
+      return INT2PTR(lua_gettop(L) - 1);
     }
 
     lua_pop(L, 1);
@@ -91,6 +98,6 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
 }
 
 
-SxcMapMethods MAP_METHODS = {
+SxcMapBinding MAP_BINDING = {
   map_intget, map_intset, map_strget, map_strset, map_iter
 };

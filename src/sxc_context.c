@@ -82,7 +82,7 @@ void* sxc_context_realloc(SxcContext* context) {
 void sxc_context_free()*/
 
 
-void* sxc_context_error(SxcContext* context, char* message_format, ...) {
+void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
   va_list args;
   char* buffer;
   int buffer_len;
@@ -146,17 +146,17 @@ void sxc_context_get_arg(SxcContext* context, int index, SxcValue* return_value)
   }
 
   if (index < context->argcount) {
-    (context->methods->get_arg)(context, index, return_value);
+    (context->binding->get_arg)(context, index, return_value);
   } else {
     sxc_value_set_null(return_value);
   }
 }
 
 
-SxcValue* sxc_context_try(SxcContext* context, SxcContextMethods* methods, void* underlying, int argcount, SxcApi api) {
+SxcValue* sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
   JMP_BUF jmpbuf;
 
-  context->methods = methods;
+  context->binding = binding;
   context->underlying = underlying;
   context->argcount = argcount;
   context->return_value = (SxcValue){context, sxc_type_null, {0}};
@@ -165,7 +165,7 @@ SxcValue* sxc_context_try(SxcContext* context, SxcContextMethods* methods, void*
   context->_firstchunk = (SxcMemoryChunk){SXC_MEMORY_CHUNK_INIT_SIZE, NULL, 0, 0};
 
   if (!(context->has_error = SETJMP(jmpbuf))) {
-    (api)(context, &context->return_value);
+    (func)(context, &context->return_value);
   }
 
   sxc_value_intern(&context->return_value);

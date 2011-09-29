@@ -43,7 +43,7 @@ printf("...lazy string length\n");
 printf("...done lazy creation\n");
   } else {
 printf("...interning string\n");
-    s = (context->methods->string_intern)(context, data, length);
+    s = (context->binding->string_intern)(context, data, length);
   }
 
 printf("...done sxc_string_new\n");

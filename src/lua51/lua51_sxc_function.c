@@ -24,6 +24,6 @@ static void function_invoke(SxcFunction* function, SxcValue** args, const int ar
 }
 
 
-SxcFunctionMethods FUNCTION_METHODS = {
+SxcFunctionBinding FUNCTION_BINDING = {
   function_invoke
 };

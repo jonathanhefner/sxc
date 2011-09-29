@@ -3,7 +3,7 @@
 #include <string.h>
 #include "sxc.h"
 
-typedef void SxcLibRegister(SxcMap* return_namespace);
+typedef void SxcLibRegister(SxcContext* context);
 #define SXC_LIB_REGISTER_FUNC "sxc_lib_register"
 
 /* Much of the code here is inspired by Lua's dynamic library loader, which can
@@ -199,7 +199,6 @@ void sxc_load(SxcContext* context, SxcValue* return_namespace) {
   SxcValue lib_name_value;
   SxcString* lib_name;
   LoadedLib* lib;
-  SxcMap* namespace;
 
 printf("in sxc_load\n");
 
@@ -216,16 +215,16 @@ printf("done extract lib_name from args\n");
 
   /* find lib if it's already been loaded by this name */
   /* NOTE because of the dynamic library loaders' search paths, the same library
-      can be referred to by multiple names.  We do not try to solve this.
-      However, each platform's loader does track the loaded binaries and doesn't
-      try to load the same binary more than once.  (So there really isn't
-      anything to gain from resolving a name to the absolute path.) */
+      can be referred to by multiple names.  However, each platform's loader
+      does track the loaded binaries and doesn't try to load the same binary
+      more than once. */
+  /* TODO change this behavior! load only once */
   lib = loaded_libs;
   while (lib != NULL && strncmp(lib->name, lib_name->data, lib_name->length) != 0) ;
 
 printf("done find lib if it's already been loaded\n");
 
-  /* load new library as necessary */
+  /* if library is new, load and invoke register function */
   if (lib == NULL) {
     /* space for name is allocated immediately following the struct */
     lib = malloc(sizeof(LoadedLib) + lib_name->length + 1);
@@ -237,17 +236,9 @@ printf("done find lib if it's already been loaded\n");
     /* insert into list */
     lib->next = loaded_libs;
     loaded_libs = lib;
+
+printf("doing register_func()\n");
+    (lib->register_func)(context);
+printf("done register_func()\n");
   }
-
-printf("done load new library as necessary\n");
-
-  /* invoke register function to populate the namespace */
-  /* NOTE that a register function may be called more than once, and should
-      recreate the namespace each time */
-  namespace = sxc_map_new(context, FALSE);
-printf("done namespace = sxc_map_new\n");
-  (lib->register_func)(namespace);
-printf("done register_func(namespace)\n");
-  sxc_value_set_map(return_namespace, namespace);
-printf("done sxc_value_set_map return_namespace\n");
 }

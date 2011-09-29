@@ -12,7 +12,6 @@
 
 
 
-
 /***** Type Definitions *****/
 
 typedef enum _SxcDataType {
@@ -52,7 +51,7 @@ typedef struct _SxcString {
 
 typedef struct _SxcMap {
   struct _SxcContext* context;
-  struct _SxcMapMethods* methods;
+  struct _SxcMapBinding* binding;
   void* underlying;
 
   int is_list;
@@ -61,7 +60,7 @@ typedef struct _SxcMap {
 
 typedef struct _SxcFunction {
   struct _SxcContext* context;
-  struct _SxcFunctionMethods* methods;
+  struct _SxcFunctionBinding* binding;
   void* underlying;
 } SxcFunction;
 
@@ -81,7 +80,7 @@ typedef struct _SxcMemoryChunk {
 
 typedef struct _SxcContext {
   /* public */
-  struct _SxcContextMethods* methods;
+  struct _SxcContextBinding* binding;
   void* underlying;
   int argcount;
   struct _SxcValue return_value;
@@ -95,13 +94,37 @@ typedef struct _SxcContext {
 } SxcContext;
 
 
-typedef void (*SxcApi)(SxcContext* context, SxcValue* return_value);
+
+/***** Library Structs *****/
+
+typedef void (*SxcLibFunction)(SxcContext* context, SxcValue* return_value);
+
+typedef struct _SxcLibMethod {
+  char* name;
+  int is_static;
+  SxcLibFunction function;
+
+} SxcLibMethod;
+
+typedef struct _SxcLibProperty {
+  char* name;
+  int is_static;
+  SxcLibFunction getter;
+  SxcLibFunction setter;
+} SxcLibProperty;
 
 
 
-/***** Method Table Definitions *****/
+/***** Map Types *****/
 
-typedef struct _SxcMapMethods {
+#define MAPTYPE_HASH (NULL)
+#define MAPTYPE_LIST ((void*)1)
+
+
+
+/***** Binding Structs *****/
+
+typedef struct _SxcMapBinding {
   void (*intget)(SxcMap* map, int key, SxcValue* return_value);
   void (*intset)(SxcMap* map, int key, SxcValue* value);
 
@@ -109,35 +132,42 @@ typedef struct _SxcMapMethods {
   void (*strset)(SxcMap* map, char* key, SxcValue* value);
 
   void* (*iter)(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
-} SxcMapMethods;
+} SxcMapBinding;
 
 
-typedef struct _SxcFunctionMethods {
+typedef struct _SxcFunctionBinding {
   void (*invoke)(SxcFunction* function, SxcValue** args, int argcount, SxcValue* return_value);
   /* TODO serialize(), deserialize() */
-} SxcFunctionMethods;
+} SxcFunctionBinding;
 
 
-typedef struct _SxcContextMethods {
+typedef struct _SxcContextBinding {
   void (*get_arg)(SxcContext* context, int index, SxcValue* return_value);
   SxcString* (*string_intern)(SxcContext* context, const char* data, int length);
-  SxcMap* (*map_new)(SxcContext* context, short int is_list);
-  SxcFunction* (*function_wrap)(SxcContext* context, SxcApi api);
-} SxcContextMethods;
+  void* (*map_newtype)(SxcContext* context, const char* name,
+          SxcLibFunction initializer, const SxcLibMethod* methods, const SxcLibProperty* properties);
+  SxcMap* (*map_new)(SxcContext* context, void* map_type);
+  SxcFunction* (*function_wrap)(SxcContext* context, SxcLibFunction func);
+
+} SxcContextBinding;
 
 
 
-/***** Function Prototypes *****/
+/***** Binding Functions *****/
 
 void sxc_load(SxcContext* context, SxcValue* return_namespace);
 
-void* sxc_context_alloc(SxcContext* context, int size);
-void* sxc_context_error(SxcContext* context, char* message_format, ...);
-void sxc_context_get_arg(SxcContext* context, int index, SxcValue* return_value);
-SxcValue* sxc_context_try(SxcContext* context,  SxcContextMethods* methods, void* underlying, int argcount, SxcApi api);
+SxcValue* sxc_context_try(SxcContext* context,  SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
 void sxc_context_finally(SxcContext* context);
 
-SxcValue** sxc_value_new(SxcContext* context, int count);
+
+
+/***** Functions covered by Convenience Macros *****/
+/* NOTE when writing a binding, I typically use these.  When writing a library,
+ * I use the convenience macros. */
+
+void sxc_context_get_arg(SxcContext* context, int index, SxcValue* return_value);
+
 char sxc_value_get_boolean(SxcValue* value, const char default_value);
 int sxc_value_get_integer(SxcValue* value, const int default_value);
 double sxc_value_get_decimal(SxcValue* value, const double default_value);
@@ -152,23 +182,15 @@ void sxc_value_set_string(SxcValue* value, SxcString* string);
 void sxc_value_set_map(SxcValue* value, SxcMap* map);
 void sxc_value_set_function(SxcValue* value, SxcFunction* function);
 
-SxcString* sxc_string_new(SxcContext* context, char* data, int length, int lazy);
-
-SxcMap* sxc_map_new(SxcContext* context, int is_list);
 void sxc_map_intget_value(SxcMap* map, int key, SxcValue* return_value);
 void sxc_map_intset_value(SxcMap* map, int key, SxcValue* value);
 void sxc_map_strget_value(SxcMap* map, char* key, SxcValue* return_value);
 void sxc_map_strset_value(SxcMap* map, char* key, SxcValue* value);
-void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
-
-SxcFunction* sxc_function_new(SxcContext* context, SxcApi api);
-void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, SxcValue* return_value);
 
 
 
-/***** Convenience Macros *****/
+/***** Required Ancillary Macros [ignore--only used by Convenience Macros] *****/
 
-/* these are ancillary to the actual convenience macros */
 #define sxc_valget__boolean(value, default_data) (sxc_value_get_boolean(value, default_data))
 #define sxc_valget__integer(value, default_data) (sxc_value_get_integer(value, default_data))
 #define sxc_valget__decimal(value, default_data) (sxc_value_get_decimal(value, default_data))
@@ -176,12 +198,10 @@ void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, S
     sxc_value_get_string(value, sxc_string_new((value)->context, (char*)(default_data), -1, TRUE)) \
     : sxc_value_get_string(value, (SxcString*)(default_data)))
 #define sxc_valget__map(value, default_data) (sxc_value_get_map(value, default_data))
-#define sxc_valget__function(value, default_data) (sizeof(*(default_data)) == sizeof(*(SxcApi)sxc_load) ? \
-    sxc_value_get_function(value, sxc_function_new((value)->context, (SxcApi)(default_data))) \
+#define sxc_valget__function(value, default_data) (sizeof(*(default_data)) == sizeof(*(SxcLibFunction)sxc_load) ? \
+    sxc_value_get_function(value, sxc_function_new((value)->context, (SxcLibFunction)(default_data))) \
     : sxc_value_get_function(value, (SxcFunction*)(default_data)))
 
-
-/* these are ancillary to the actual convenience macros */
 #define sxc_valset__null(value, data) (sxc_value_set_null(value))
 #define sxc_valset__boolean(value, data) (sxc_value_set_boolean(value, data))
 #define sxc_valset__integer(value, data) (sxc_value_set_integer(value, data))
@@ -190,10 +210,13 @@ void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, S
     sxc_value_set_string(value, sxc_string_new((value)->context, (char*)(data), -1, FALSE)) \
     : sxc_value_set_string(value, (SxcString*)(data)))
 #define sxc_valset__map(value, data) (sxc_value_set_map(value, data))
-#define sxc_valset__function(value, data) (sizeof(*(data)) == sizeof(*(SxcApi)sxc_load) ? \
-    sxc_value_set_function(value, sxc_function_new((value)->context, (SxcApi)(data))) \
+#define sxc_valset__function(value, data) (sizeof(*(data)) == sizeof(*(SxcLibFunction)sxc_load) ? \
+    sxc_value_set_function(value, sxc_function_new((value)->context, (SxcLibFunction)(data))) \
     : sxc_value_set_function(value, (SxcFunction*)(data)))
 
+
+
+/***** Convenience Macros *****/
 
 #define sxc_valget(/*(SxcValue*)*/ value, DATA_TYPE, default_data) \
   (sxc_valget__##DATA_TYPE(value, default_data))
@@ -216,7 +239,7 @@ void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, S
   } while (0);
 
 
-/* TODO? support named args from contexts a la Ruby (extract from last-arg map) */
+/* TODO strget on contexts should fetch global variables */
 #define sxc_strget(/*(SxcMap*)*/ map, /*(char*)*/ key, DATA_TYPE, default_data) \
   (sizeof(*(container)) == sizeof(SxcContext) ? \
       (sxc_value_set_null(&((SxcContext*)(container))->_tmpval) \
@@ -229,3 +252,22 @@ void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, S
     sxc_valset(&(map)->context->_tmpval, DATA_TYPE, data); \
     sxc_map_strset_value(map, key, &(map)->context->_tmpval); \
   } while (0);
+
+
+
+/***** Library Functions *****/
+
+void* sxc_context_alloc(SxcContext* context, int size);
+void* sxc_context_error(SxcContext* context, const char* message_format, ...);
+
+SxcValue** sxc_value_new(SxcContext* context, int count);
+
+SxcString* sxc_string_new(SxcContext* context, char* data, int length, int lazy);
+
+SxcMap* sxc_map_new(SxcContext* context, void* map_type);
+void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunction initialzier,
+                      const SxcLibMethod* methods, const SxcLibProperty* properties);
+void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
+
+SxcFunction* sxc_function_new(SxcContext* context, SxcLibFunction func);
+void sxc_function_invoke(SxcFunction* function, SxcValue** args, int argcount, SxcValue* return_value);

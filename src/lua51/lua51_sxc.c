@@ -1,47 +1,48 @@
 #include "lua51_sxc.h"
 
 int luaopen_lua51_sxc(lua_State *L) {
-  printf("in luaopen\n");
+printf("in luaopen\n");
+
+  /* create table for map type ctors */
+  lua_newtable(L);
+    /* add list map type ctor placeholder (so 1st index isn't nil) */
+    lua_pushliteral(L, "list ctor placeholder");
+    lua_rawseti(L, -2, PTR2INT(MAPTYPE_LIST));
+  lua_setfield(L, LUA_REGISTRYINDEX, MAPTYPE_CTORS_KEY);
 
   /* create require_sxc function */
   lua_pushlightuserdata(L, sxc_load);
-  lua_pushcclosure(L, l_sxc_invoke, 1);
+  lua_pushcclosure(L, l_libfunction_invoke, 1);
   lua_setglobal(L, "require_sxc");
 
   return 0;
 }
 
 
-int l_sxc_invoke(lua_State* L) {
-  SxcContext context;
-  const int argcount = lua_gettop(L);
-  SxcApi api = (SxcApi)lua_touserdata(L, lua_upvalueindex(1));
-  SxcValue* return_value = sxc_context_try(&context, &CONTEXT_METHODS, L, argcount, api);
-  const int garbage = lua_gettop(L) - argcount;
+int l_libfunction_invoke(lua_State* L) {
+  return libfunction_invoke((SxcLibFunction)lua_touserdata(L, lua_upvalueindex(1)), L, lua_gettop(L));
+}
 
-printf("in l_sxc_invoke, argcount: %d, garbage: %d\n", argcount, garbage);
+
+
+
+int libfunction_invoke(SxcLibFunction func, lua_State* L, const int argcount) {
+  SxcContext context;
+  const int final_top = lua_gettop(L) + 1;
+  SxcValue* return_value = sxc_context_try(&context, &CONTEXT_BINDING, L, argcount, func);
 
   push_value(&context, return_value);
-  if (garbage > 0) {
+  if (final_top < lua_gettop(L)) {
     /* NOTE after this point no SxcStrings, SxcMaps, or SxcFunctions are valid,
-    because their index into the stack may be one replaced/popped below */
-
-printf("top: %d, type type: %s, arg+1 type: %s\n", lua_gettop(L), lua_typename(L, lua_type(L, -1)), lua_typename(L, lua_type(L, argcount + 1)));
-
-    lua_replace(L, argcount + 1);
-
-printf("retval type: %s\n", lua_typename(L, lua_type(L, argcount + 1)));
-
-    lua_pop(L, garbage - 1/* lua_replace pops top element */);
-
-printf("post-pop top: %d, top type: %s\n", lua_gettop(L), lua_typename(L, lua_type(L, -1)));
+      because their index into the stack may be one replaced/popped below */
+    lua_replace(L, final_top);
+    lua_settop(L, final_top);
   }
+
   sxc_context_finally(&context);
 
   return context.has_error ? lua_error(L) : 1;
 }
-
-
 
 
 short int table_is_list(lua_State* L, int index) {
@@ -55,7 +56,7 @@ printf("in table_is_list\n");
   type = lua_type(L, -1);
   lua_pop(L, 1);
   if (type != LUA_TNIL) {
-    return 0;
+    return TABLE_NOT_LIST;
   }
 
 printf("done check t[0]\n");
@@ -66,7 +67,7 @@ printf("done check t[0]\n");
   type = lua_type(L, -1);
   lua_pop(L, 1);
   if (type != LUA_TNIL) {
-    return 1;
+    return TABLE_IS_LIST;
   }
 
 printf("done check t[1]\n");
@@ -75,16 +76,17 @@ printf("done check t[1]\n");
       added are integer keys, they will be adjusted to 1-based indexing). */
   lua_pushnil(L);
   if (!lua_next(L, index)) {
-    return -1;
+    return TABLE_MAYBE_LIST;
   }
   lua_pop(L, 2);
 
 printf("done check empty\n");
 
-  return 0;
+  return TABLE_NOT_LIST;
 }
 
 
+/* TODO convert `*(int*)(s->underlying) = index` to `s->underlying = INT2PTR(index)` */
 SxcString* get_string(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
   SxcString* s = sxc_context_alloc(context, sizeof(SxcString) + sizeof(int));
@@ -103,7 +105,7 @@ SxcString* get_string(SxcContext* context, int index) {
 }
 
 
-SxcMap* get_map(SxcContext* context, int index) {
+SxcMap* get_map(SxcContext* context, int index, int is_list) {
   lua_State* L = (lua_State*)context->underlying;
   SxcMap* m = sxc_context_alloc(context, sizeof(SxcMap) + sizeof(int));
 
@@ -112,10 +114,10 @@ SxcMap* get_map(SxcContext* context, int index) {
   }
 
   m->context = context;
-  m->methods = &MAP_METHODS;
+  m->binding = &MAP_BINDING;
   m->underlying = m + 1;
   *(int*)(m->underlying) = index;
-  m->is_list = table_is_list(L, index);
+  m->is_list = is_list == TABLE_MAYBE_LIST ? table_is_list(L, index) : is_list;
   return m;
 }
 
@@ -129,7 +131,7 @@ SxcFunction* get_function(SxcContext* context, int index) {
   }
 
   f->context = context;
-  f->methods = &FUNCTION_METHODS;
+  f->binding = &FUNCTION_BINDING;
   f->underlying = f + 1;
   *(int*)(f->underlying) = index;
   return f;
@@ -164,7 +166,7 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
       return;
 
     case LUA_TTABLE:
-      sxc_value_set_map(return_value, get_map(context, index));
+      sxc_value_set_map(return_value, get_map(context, index, TABLE_MAYBE_LIST));
       return;
 
     case LUA_TFUNCTION:
