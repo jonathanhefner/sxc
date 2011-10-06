@@ -7,8 +7,8 @@
 #define TABLE_NOT_LIST (0)
 #define TABLE_MAYBE_LIST (-1)
 
-#define INT2PTR(x) ((void*)(long int)x)
-#define PTR2INT(x) ((int)(long int)x)
+#define INT2PTR(x) ((void*)(long int)(x))
+#define PTR2INT(x) ((int)(long int)(x))
 
 
 int l_libfunction_invoke(lua_State* L);

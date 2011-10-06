@@ -15,7 +15,7 @@ static SxcString* string_intern(SxcContext* context, const char* data, int lengt
 
 
 static int l_maptype_metatable_index(lua_State* L) {
-  SxcLibFunction getter;
+  SxcLibFunction* getter;
 
   /* check for method first (return if found) */
   lua_pushvalue(L, 2/*property name*/);
@@ -30,7 +30,7 @@ static int l_maptype_metatable_index(lua_State* L) {
     /* check getters next (invoke if found) */
     lua_pushvalue(L, 2/*property name*/);
     lua_rawget(L, lua_upvalueindex(2/*getters*/));
-    getter = (SxcLibFunction)lua_touserdata(L, -1);
+    getter = (SxcLibFunction*)lua_touserdata(L, -1);
 
     if (getter != NULL) {
       libfunction_invoke(getter, L, 1);
@@ -45,12 +45,12 @@ static int l_maptype_metatable_index(lua_State* L) {
 }
 
 static int l_maptype_metatable_newindex(lua_State* L) {
-  SxcLibFunction setter;
+  SxcLibFunction* setter;
 
   /* check for setter */
   lua_pushvalue(L, 2/*property name*/); /* 2nd arg is property name */
   lua_rawget(L, lua_upvalueindex(1));
-  setter = (SxcLibFunction)lua_touserdata(L, -1);
+  setter = (SxcLibFunction*)lua_touserdata(L, -1);
   lua_pop(L, 1);
 
   if (setter != NULL) {
@@ -73,7 +73,7 @@ static int l_maptype_metatable_newindex(lua_State* L) {
 }
 
 static int l_maptype_metatable_call(lua_State* L) {
-  SxcLibFunction initializer = (SxcLibFunction)lua_touserdata(L, lua_upvalueindex(2));
+  SxcLibFunction* initializer = (SxcLibFunction*)lua_touserdata(L, lua_upvalueindex(2));
 
   /* construct object */
   lua_newtable(L);

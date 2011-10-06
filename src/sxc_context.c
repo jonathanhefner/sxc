@@ -18,7 +18,10 @@
   #define LONGJMP(env, val) (longjmp(env, val))
 #endif
 
-void sxc_value_intern(SxcValue* value);
+
+int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
+void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
+
 
 
 /* TODO? change allocated chunks to be stored in a global linked list (with
@@ -31,6 +34,7 @@ void* sxc_context_alloc(SxcContext* context, int size) {
 
 printf("in sxc_context_alloc, size: %d, first chunk free: %d\n", size, walker->free_space);
 
+  /* TODO? should size <= 0 raise an error? (if so sxc_value.c must be fixed) */
   if (size <= 0) return NULL;
 
   /* find appropriate memory chunk */
@@ -83,7 +87,7 @@ void sxc_context_free()*/
 
 
 void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
-  va_list args;
+  va_list varg;
   char* buffer;
   int buffer_len;
   int actual_len;
@@ -94,7 +98,9 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
   #if __STDC_VERSION__ >= 199901L
     buffer_len = strlen(message_format) * 8;
     buffer = sxc_context_alloc(context, buffer_len);
-    actual_len = vsnprintf(buffer, buffer_len, message_format, args);
+    va_start(varg, message_format);
+    vsnprintf(buffer, buffer_len, message_format, varg);
+    va_end(varg);
 
     /* proper vsnprintf implementations return length that should have been
         written (not including null terminator)... */
@@ -103,9 +109,9 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
       buffer_len = actual_len + 1;
       buffer = sxc_context_alloc(context, buffer_len);
 
-      va_start(args, message_format);
-      vsnprintf(buffer, buffer_len, message_format, args);
-      va_end(args);
+      va_start(varg, message_format);
+      vsnprintf(buffer, buffer_len, message_format, varg);
+      va_end(varg);
     } else {
       /* ...but some older vsnprintf implementations return -1 when buffer_len is exceeded... */
       while (actual_len < 0) {
@@ -113,9 +119,9 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
         buffer_len *= 4;
         buffer = sxc_context_alloc(context, buffer_len);
 
-        va_start(args, message_format);
-        actual_len = vsnprintf(buffer, buffer_len, message_format, args);
-        va_end(args);
+        va_start(varg, message_format);
+        actual_len = vsnprintf(buffer, buffer_len, message_format, varg);
+        va_end(varg);
       }
     }
 
@@ -123,15 +129,14 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
     buffer_len = strlen(message_format) * 32;
     buffer = sxc_context_alloc(context, buffer_len);
 
-    va_start(args, message_format);
-    actual_len = vsprintf(buffer, message_format, args);
-    va_end(args);
+    va_start(varg, message_format);
+    actual_len = vsprintf(buffer, message_format, varg);
+    va_end(varg);
   #endif
 
-  /* Step 2: Intern formatted error message */
-  sxc_value_set_string(&context->return_value, sxc_string_new(context, buffer, actual_len, FALSE));
+  /* Step 2: Save formatted error message */
+  sxc_value_set(&context->return_value, sxc_cchars, buffer, actual_len);
   context->has_error = TRUE;
-  /* TODO sxc_context_free(buffer) */
 
   /* Step 3: Long jump back to C library's invocation point */
   LONGJMP(*(JMP_BUF*)(context->_jmpbuf), 1);
@@ -140,16 +145,22 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
 }
 
 
-void sxc_context_get_arg(SxcContext* context, int index, SxcValue* return_value) {
-  if (return_value->context == NULL) {
-    return_value->context = context;
+int sxc_context_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST) {
+  va_list varg;
+  int retval;
+  SxcValue value;
+
+  if (index >= context->argcount) {
+    return SXC_FAILURE;
   }
 
-  if (index < context->argcount) {
-    (context->binding->get_arg)(context, index, return_value);
-  } else {
-    sxc_value_set_null(return_value);
-  }
+  value.context = context;
+  (context->binding->get_arg)(context, index, &value);
+
+  va_start(varg, type);
+  retval = sxc_value_getv(&value, type, varg);
+  va_end(varg);
+  return retval;
 }
 
 
@@ -159,9 +170,8 @@ SxcValue* sxc_context_try(SxcContext* context, SxcContextBinding* binding, void*
   context->binding = binding;
   context->underlying = underlying;
   context->argcount = argcount;
-  context->return_value = (SxcValue){context, sxc_type_null, {0}};
+  context->return_value = (SxcValue){context, sxc_null, {0}};
   context->_jmpbuf = &jmpbuf;
-  context->_tmpval = (SxcValue){context, sxc_type_null, {0}};
   context->_firstchunk = (SxcMemoryChunk){SXC_MEMORY_CHUNK_INIT_SIZE, NULL, 0, 0};
 
   if (!(context->has_error = SETJMP(jmpbuf))) {

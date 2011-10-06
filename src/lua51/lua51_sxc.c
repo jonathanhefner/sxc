@@ -20,13 +20,13 @@ printf("in luaopen\n");
 
 
 int l_libfunction_invoke(lua_State* L) {
-  return libfunction_invoke((SxcLibFunction)lua_touserdata(L, lua_upvalueindex(1)), L, lua_gettop(L));
+  return libfunction_invoke((SxcLibFunction*)lua_touserdata(L, lua_upvalueindex(1)), L, lua_gettop(L));
 }
 
 
 
 
-int libfunction_invoke(SxcLibFunction func, lua_State* L, const int argcount) {
+int libfunction_invoke(SxcLibFunction* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
   SxcValue* return_value = sxc_context_try(&context, &CONTEXT_BINDING, L, argcount, func);
@@ -101,6 +101,7 @@ SxcString* get_string(SxcContext* context, int index) {
   *(int*)(s->underlying) = index;
   s->data = (char*)lua_tolstring(L, index, &length);
   s->length = (int)length;
+  s->is_terminated = TRUE;
   return s;
 }
 
@@ -145,68 +146,71 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
   switch (lua_type(L, index)) {
     default:
     case LUA_TNIL:
-      sxc_value_set_null(return_value);
+      sxc_value_set(return_value, sxc_null);
       return;
 
     case LUA_TBOOLEAN:
-      sxc_value_set_boolean(return_value, (char)lua_toboolean(L, index));
+      sxc_value_set(return_value, sxc_bool, (char)lua_toboolean(L, index));
       return;
 
     case LUA_TNUMBER:
       number = (double)lua_tonumber(L, index);
       if (number == (double)(int)number) {
-        sxc_value_set_integer(return_value, (int)number);
+        sxc_value_set(return_value, sxc_int, (int)number);
       } else {
-        sxc_value_set_decimal(return_value, number);
+        sxc_value_set(return_value, sxc_double, number);
       }
       return;
 
     case LUA_TSTRING:
-      sxc_value_set_string(return_value, get_string(context, index));
+      sxc_value_set(return_value, sxc_string, get_string(context, index));
       return;
 
     case LUA_TTABLE:
-      sxc_value_set_map(return_value, get_map(context, index, TABLE_MAYBE_LIST));
+      sxc_value_set(return_value, sxc_map, get_map(context, index, TABLE_MAYBE_LIST));
       return;
 
     case LUA_TFUNCTION:
-      sxc_value_set_function(return_value, get_function(context, index));
+      sxc_value_set(return_value, sxc_function, get_function(context, index));
       return;
   }
 }
 
 
+#include <stdio.h>
 void push_value(SxcContext* context, SxcValue* value) {
   lua_State* L = (lua_State*)context->underlying;
 
+printf("in push_value, type:%d\n", value->type);
+
   switch (value->type) {
     default:
-    case sxc_type_null:
+    case sxc_null:
       lua_pushnil(L);
       return;
 
-    case sxc_type_boolean:
-      lua_pushboolean(L, sxc_value_get_boolean(value, 0));
+    case sxc_bool:
+      lua_pushboolean(L, value->data.abool);
       return;
 
-    case sxc_type_integer:
-      lua_pushinteger(L, (lua_Integer)sxc_value_get_integer(value, 0));
+    case sxc_int:
+      lua_pushinteger(L, (lua_Integer)value->data.aint);
       return;
 
-    case sxc_type_decimal:
-      lua_pushnumber(L, (lua_Number)sxc_value_get_decimal(value, 0.0));
+    case sxc_double:
+      lua_pushnumber(L, (lua_Number)value->data.adouble);
       return;
 
-    case sxc_type_string:
-      lua_pushvalue(L, *(int*)(sxc_value_get_string(value, NULL)->underlying));
+    case sxc_string:
+      lua_pushvalue(L, *(int*)(value->data.string->underlying));
       return;
 
-    case sxc_type_map:
-      lua_pushvalue(L, *(int*)(sxc_value_get_map(value, NULL)->underlying));
+    case sxc_map:
+      lua_pushvalue(L, *(int*)(value->data.map->underlying));
       return;
 
-    case sxc_type_function:
-      lua_pushvalue(L, *(int*)(sxc_value_get_function(value, NULL)->underlying));
+    case sxc_function:
+      lua_pushvalue(L, *(int*)(value->data.function->underlying));
       return;
   }
 }

@@ -1,6 +1,8 @@
+#include <stdarg.h>
 #include "sxc.h"
 
-void sxc_value_intern(SxcValue* value);
+int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
+void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 
 
 SxcMap* sxc_map_new(SxcContext* context, void* map_type) {
@@ -18,42 +20,91 @@ void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunction init
     methods == NULL ? no_methods : methods, properties == NULL ? no_properties : properties);
 }
 
-void sxc_map_intget_value(SxcMap* map, int key, SxcValue* return_value) {
-  if (return_value->context == NULL) {
-    return_value->context = map->context;
-  }
-  (map->binding->intget)(map, key, return_value);
+
+int sxc_map_intget(SxcMap* map, int key, SxcDataType type, SXC_DATA_DEST) {
+  va_list varg;
+  int retval;
+  SxcValue value;
+
+  value.context = map->context;
+  (map->binding->intget)(map, key, &value);
+
+  va_start(varg, type);
+  retval = sxc_value_getv(&value, type, varg);
+  va_end(varg);
+  return retval;
 }
 
-void sxc_map_intset_value(SxcMap* map, int key, SxcValue* value) {
-  if (value->context == NULL) {
-    value->context = map->context;
-  }
-  sxc_value_intern(value);
-  (map->binding->intset)(map, key, value);
+void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG) {
+  va_list varg;
+  SxcValue value;
+
+  value.context = map->context;
+  va_start(varg, type);
+  sxc_value_setv(&value, type, varg);
+  va_end(varg);
+
+  (map->binding->intset)(map, key, &value);
 }
 
-void sxc_map_strget_value(SxcMap* map, char* key, SxcValue* return_value) {
-  if (return_value->context == NULL) {
-    return_value->context = map->context;
-  }
-  (map->binding->strget)(map, key, return_value);
+
+int sxc_map_strget(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_DEST) {
+  va_list varg;
+  int retval;
+  SxcValue value;
+
+  value.context = map->context;
+  (map->binding->strget)(map, key, &value);
+
+  va_start(varg, type);
+  retval = sxc_value_getv(&value, type, varg);
+  va_end(varg);
+  return retval;
 }
 
-void sxc_map_strset_value(SxcMap* map, char* key, SxcValue* value) {
-  if (value->context == NULL) {
-    value->context = map->context;
-  }
-  sxc_value_intern(value);
-  (map->binding->strset)(map, key, value);
+void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG) {
+  va_list varg;
+  SxcValue value;
+
+  value.context = map->context;
+  va_start(varg, type);
+  sxc_value_setv(&value, type, varg);
+  va_end(varg);
+
+  (map->binding->strset)(map, key, &value);
 }
+
+
+int sxc_map_length(SxcMap* map) {
+  void* iter = NULL;
+  SxcValue map_key;
+  SxcValue map_val;
+  int max_int_key = -1;
+  int length = (map->binding->length)(map);
+
+  /* for convenience, bindings can return a length less than zero, and we will
+      iterate through the map to compute (max_int_key + 1) as the length */
+  /* NOTE this is obviously not very performant.  Bindings should only rely on
+      this feature when the length is not truly known, e.g. a hashmap (possibly)
+      representing a sparse vector */
+  if (length < 0) {
+    while ((iter = sxc_map_iter(map, iter, &map_key, &map_val))) {
+      if (map_key.type == sxc_int) {
+        max_int_key = map_key.data.aint > max_int_key ? map_key.data.aint : max_int_key;
+      }
+    }
+
+    length = max_int_key + 1;
+  }
+
+  return length;
+}
+
 
 void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
-  if (return_key->context == NULL) {
-    return_key->context = map->context;
-  }
-  if (return_value->context == NULL) {
-    return_value->context = map->context;
-  }
+  /* eliminate a potential source of errors */
+  return_key->context = map->context;
+  return_value->context = map->context;
+
   return (map->binding->iter)(map, state, return_key, return_value);
 }

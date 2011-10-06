@@ -45,7 +45,7 @@ static void map_intset(SxcMap* map, int key, SxcValue* value) {
 }
 
 
-static void map_strget(SxcMap* map, char* key, SxcValue* return_value) {
+static void map_strget(SxcMap* map, const char* key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
   luaL_checkstack(L, 1 + 2, "");
   lua_getfield(L, *(int*)map->underlying, key);
@@ -53,7 +53,7 @@ static void map_strget(SxcMap* map, char* key, SxcValue* return_value) {
 }
 
 
-static void map_strset(SxcMap* map, char* key, SxcValue* value) {
+static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
   /* help deal with 0-based vs 1-based indexing */
@@ -63,6 +63,11 @@ static void map_strset(SxcMap* map, char* key, SxcValue* value) {
 
   push_value(map->context, value);
   lua_setfield(L, *(int*)map->underlying, key);
+}
+
+
+int map_length(SxcMap* map) {
+  return -1;
 }
 
 
@@ -88,7 +93,7 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
 
     get_value(map->context, -2, return_key);
 
-    if (return_key->type == sxc_type_integer || return_key->type == sxc_type_string) {
+    if (return_key->type == sxc_int || return_key->type == sxc_string) {
       get_value(map->context, -1, return_value);
       return INT2PTR(lua_gettop(L) - 1);
     }
@@ -99,5 +104,5 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
 
 
 SxcMapBinding MAP_BINDING = {
-  map_intget, map_intset, map_strget, map_strset, map_iter
+  map_intget, map_intset, map_strget, map_strset, map_length, map_iter
 };

@@ -196,22 +196,19 @@ typedef struct _LoadedLib {
 LoadedLib* loaded_libs;
 
 void sxc_load(SxcContext* context, SxcValue* return_namespace) {
-  SxcValue lib_name_value;
-  SxcString* lib_name;
+  char* lib_name;
+  int lib_name_len;
   LoadedLib* lib;
 
-printf("in sxc_load\n");
+printf("in sxc_load, lib_name:%p lib_name_len:%p\n", &lib_name, &lib_name_len);
 
   /* extract lib_name from args */
-  lib_name_value.context = context;
-  sxc_context_get_arg(context, 0, &lib_name_value);
-  if (lib_name_value.type != sxc_type_string) {
+  if (sxc_context_arg(context, 0, sxc_cchars, &lib_name, &lib_name_len) == SXC_FAILURE) {
     sxc_context_error(context, "First argument to library loader must be a library name (string)");
     return;
   }
-  lib_name = sxc_value_get_string(&lib_name_value, NULL);
 
-printf("done extract lib_name from args\n");
+printf("done extract lib_name from args, name:%s, len:%d\n", lib_name, lib_name_len);
 
   /* find lib if it's already been loaded by this name */
   /* NOTE because of the dynamic library loaders' search paths, the same library
@@ -220,24 +217,28 @@ printf("done extract lib_name from args\n");
       more than once. */
   /* TODO change this behavior! load only once */
   lib = loaded_libs;
-  while (lib != NULL && strncmp(lib->name, lib_name->data, lib_name->length) != 0) ;
+  while (lib != NULL && strncmp(lib->name, lib_name, lib_name_len) != 0) ;
 
 printf("done find lib if it's already been loaded\n");
 
   /* if library is new, load and invoke register function */
   if (lib == NULL) {
     /* space for name is allocated immediately following the struct */
-    lib = malloc(sizeof(LoadedLib) + lib_name->length + 1);
+    lib = malloc(sizeof(LoadedLib) + lib_name_len + 1);
+printf("done alloc new lib struct, name_len: %d\n", lib_name_len);
     lib->name = (char*)(lib + 1);
-    strncpy(lib->name, lib_name->data, lib_name->length);
+    memcpy(lib->name, lib_name, lib_name_len);
+printf("done set new lib name\n");
+    lib->name[lib_name_len] = '\0';
+printf("done terminate new lib name\n");
 
-    lib->register_func = get_register_func(context, lib_name->data, lib_name->length);
+    lib->register_func = get_register_func(context, lib_name, lib_name_len);
+printf("get new lib register_func\n");
 
     /* insert into list */
     lib->next = loaded_libs;
     loaded_libs = lib;
 
-printf("doing register_func()\n");
     (lib->register_func)(context);
 printf("done register_func()\n");
   }
