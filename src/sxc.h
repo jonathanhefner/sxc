@@ -21,7 +21,7 @@ typedef enum _SxcDataType SxcDataType;
 typedef struct _SxcValue SxcValue;
 typedef struct _SxcString SxcString;
 typedef struct _SxcMap SxcMap;
-typedef struct _SxcFunction SxcFunction;
+typedef struct _SxcFunc SxcFunc;
 typedef struct _SxcContext SxcContext;
 
 #define MAPTYPE_HASH (NULL)
@@ -31,20 +31,20 @@ typedef struct _SxcContext SxcContext;
 
 /***** Library Types *****/
 
-typedef void (SxcLibFunction)(SxcContext* context);
+typedef void (SxcLibFunc)(SxcContext* context);
 
 typedef struct _SxcLibMethod {
   char* name;
   int is_static;
-  SxcLibFunction* function;
+  SxcLibFunc* func;
 
 } SxcLibMethod;
 
 typedef struct _SxcLibProperty {
   char* name;
   int is_static;
-  SxcLibFunction* getter;
-  SxcLibFunction* setter;
+  SxcLibFunc* getter;
+  SxcLibFunc* setter;
 } SxcLibProperty;
 
 
@@ -64,18 +64,17 @@ typedef struct _SxcMapBinding {
 
 
 typedef struct _SxcFunctionBinding {
-  void (*invoke)(SxcFunction* function, SxcValue** args, int argcount, SxcValue* return_value);
-  /* TODO serialize(), deserialize() */
-} SxcFunctionBinding;
+  void (*invoke)(SxcFunc* func, SxcValue** args, int argcount, SxcValue* return_value);
+} SxcFuncBinding;
 
 
 typedef struct _SxcContextBinding {
   void (*get_arg)(SxcContext* context, int index, SxcValue* return_value);
   SxcString* (*string_intern)(SxcContext* context, const char* data, int length);
-  void* (*map_newtype)(SxcContext* context, const char* name,
-          SxcLibFunction initializer, const SxcLibMethod* methods, const SxcLibProperty* properties);
+  void* (*map_newtype)(SxcContext* context, const char* name, SxcLibFunc* initializer,
+                        const SxcLibMethod* methods, const SxcLibProperty* properties);
   SxcMap* (*map_new)(SxcContext* context, void* map_type);
-  SxcFunction* (*function_wrap)(SxcContext* context, SxcLibFunction func);
+  SxcFunc* (*func_wrap)(SxcContext* context, SxcLibFunc func);
 
 } SxcContextBinding;
 
@@ -99,7 +98,7 @@ void sxc_value_intern(SxcValue* value);
 SxcString* sxc_string_new(SxcContext* context, char* data, int length);
 
 SxcMap* sxc_map_new(SxcContext* context, void* map_type);
-void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunction initialzier,
+void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialzier,
                       const SxcLibMethod* methods, const SxcLibProperty* properties);
 int sxc_map_intget(SxcMap* map, int key, SxcDataType type, SXC_DATA_DEST);
 void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG);
@@ -108,15 +107,15 @@ void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG
 int sxc_map_length(SxcMap* map);
 void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
 
-SxcFunction* sxc_function_new(SxcContext* context, SxcLibFunction func);
-int sxc_function_invoke(SxcFunction* function, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS);
+SxcFunc* sxc_func_new(SxcContext* context, SxcLibFunc func);
+int sxc_func_invoke(SxcFunc* func, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS);
 
 
 
 /***** Binding Prototypes *****/
 
 void sxc_load(SxcContext* context);
-void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
+void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunc func);
 void sxc_finally(SxcContext* context);
 
 
@@ -138,7 +137,7 @@ enum _SxcDataType {
       though sxc_[string|map|function] methods. */
   sxc_string,
   sxc_map,
-  sxc_function,
+  sxc_func,
 
   /* These are the C types.  Each is represented by a common C data type (plus
       an int length, in some cases), and can be converted to one of the script
@@ -147,7 +146,7 @@ enum _SxcDataType {
       to a script type. */
   sxc_cstring,   /* char* <=> SxcString */
   sxc_cpointer,  /* void* <=> SxcString */
-  sxc_cfunction, /* SxcLibFunction => SxcFunction */
+  sxc_cfunc,     /* SxcLibFunc => SxcFunc */
   sxc_cchars,    /* char* + int length <=> SxcString */
   sxc_cbools,    /* char* + int length <=> SxcMap */
   sxc_cints,     /* int* + int length <=> SxcMap */
@@ -174,10 +173,10 @@ typedef union _SxcData {
 
   SxcString* string;
   SxcMap* map;
-  SxcFunction* function;
+  SxcFunc* func;
 
   char* cstring;
-  SxcLibFunction* cfunction;
+  SxcLibFunc* cfunc;
   void* cpointer;
 
   /* HACK _array_store can be used to generically read/write to the array-like
@@ -237,9 +236,9 @@ struct _SxcMap {
 };
 
 
-struct _SxcFunction {
+struct _SxcFunc {
   SxcContext* context;
-  SxcFunctionBinding* binding;
+  SxcFuncBinding* binding;
   void* underlying;
 };
 

@@ -64,12 +64,12 @@ ifeq ($(config),release)
 endif
 
 OBJECTS := \
-	$(OBJDIR)/sxc_context.o \
-	$(OBJDIR)/sxc_function.o \
-	$(OBJDIR)/sxc_load.o \
-	$(OBJDIR)/sxc_map.o \
 	$(OBJDIR)/sxc_string.o \
 	$(OBJDIR)/sxc_value.o \
+	$(OBJDIR)/sxc_map.o \
+	$(OBJDIR)/sxc_load.o \
+	$(OBJDIR)/sxc_func.o \
+	$(OBJDIR)/sxc_context.o \
 
 RESOURCES := \
 
@@ -130,22 +130,22 @@ $(GCH): $(PCH)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 endif
 
-$(OBJDIR)/sxc_context.o: ../../../src/sxc_context.c
+$(OBJDIR)/sxc_string.o: ../../../src/sxc_string.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/sxc_function.o: ../../../src/sxc_function.c
-	@echo $(notdir $<)
-	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/sxc_load.o: ../../../src/sxc_load.c
+$(OBJDIR)/sxc_value.o: ../../../src/sxc_value.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/sxc_map.o: ../../../src/sxc_map.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/sxc_string.o: ../../../src/sxc_string.c
+$(OBJDIR)/sxc_load.o: ../../../src/sxc_load.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/sxc_value.o: ../../../src/sxc_value.c
+$(OBJDIR)/sxc_func.o: ../../../src/sxc_func.c
+	@echo $(notdir $<)
+	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
+$(OBJDIR)/sxc_context.o: ../../../src/sxc_context.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 

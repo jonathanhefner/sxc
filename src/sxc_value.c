@@ -236,7 +236,7 @@ static int to_map(SxcValue* value, SxcMap** dest) {
         element.type = ELEMENT_TYPE;                                        \
         for (i = 0; i < value->data.ARRAY_NAME.length; i += 1) {            \
           element.data.ELEMENT_DATA_NAME = value->data.ARRAY_NAME.array[i]; \
-          ((*dest)->binding->intset)(*dest, i, &element);                     \
+          ((*dest)->binding->intset)(*dest, i, &element);                   \
         }
 
     case sxc_cbools:
@@ -264,14 +264,14 @@ static int to_map(SxcValue* value, SxcMap** dest) {
 }
 
 
-static int to_function(SxcValue* value, SxcFunction** dest) {
+static int to_func(SxcValue* value, SxcFunc** dest) {
   switch (value->type) {
-    case sxc_function:
-      *dest = value->data.function;
+    case sxc_func:
+      *dest = value->data.func;
       return SXC_SUCCESS;
 
-    case sxc_cfunction:
-      *dest = sxc_function_new(value->context, value->data.cfunction);
+    case sxc_cfunc:
+      *dest = sxc_func_new(value->context, value->data.cfunc);
       return SXC_SUCCESS;
 
     default:
@@ -301,10 +301,10 @@ static int to_cpointer(SxcValue* value, void** dest) {
 }
 
 
-static int to_cfunction(SxcValue* value, SxcLibFunction** dest) {
+static int to_cfunc(SxcValue* value, SxcLibFunc** dest) {
   switch (value->type) {
-    case sxc_cfunction:
-      *dest = value->data.cfunction;
+    case sxc_cfunc:
+      *dest = value->data.cfunc;
       return SXC_SUCCESS;
 
     default:
@@ -582,14 +582,14 @@ int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg) {
       return to_string(value, (SxcString**)dest);
     case sxc_map:
       return to_map(value, (SxcMap**)dest);
-    case sxc_function:
-      return to_function(value, (SxcFunction**)dest);
+    case sxc_func:
+      return to_func(value, (SxcFunc**)dest);
     case sxc_cstring:
       return to_cstring(value, (char**)dest);
     case sxc_cpointer:
       return to_cpointer(value, (void**)dest);
-    case sxc_cfunction:
-      return to_cfunction(value, (SxcLibFunction**)dest);
+    case sxc_cfunc:
+      return to_cfunc(value, (SxcLibFunc**)dest);
 
     case sxc_cchars:
       dest_len = va_arg(varg, int*);
@@ -646,10 +646,10 @@ void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg) {
 
       case sxc_string:
       case sxc_map:
-      case sxc_function:
+      case sxc_func:
       case sxc_cstring:
       case sxc_cpointer:
-      case sxc_cfunction:
+      case sxc_cfunc:
         value->data._pointer_store = va_arg(varg, void*);
         break;
 
@@ -686,10 +686,10 @@ void sxc_value_intern(SxcValue* value) {
   SxcData data;
 
   switch (value->type) {
-    case sxc_cfunction:
-      to_function(value, &(data.function));
-      value->type = sxc_function;
-      value->data.function = data.function;
+    case sxc_cfunc:
+      to_func(value, &(data.func));
+      value->type = sxc_func;
+      value->data.func = data.func;
       break;
 
     case sxc_cstring:

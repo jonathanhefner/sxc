@@ -6,14 +6,14 @@ void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 
 
 /* TODO? remove b/c sxc_map_deftype obviates the need for this */
-SxcFunction* sxc_function_new(SxcContext* context, SxcLibFunction func) {
+SxcFunc* sxc_func_new(SxcContext* context, SxcLibFunc func) {
   if (func == NULL) return NULL;
-  return (context->binding->function_wrap)(context, func);
+  return (context->binding->func_wrap)(context, func);
 }
 
 #include <stdio.h>
 /* TODO this function signature still feels off... how can it be more intuitive? */
-int sxc_function_invoke(SxcFunction* function, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS) {
+int sxc_func_invoke(SxcFunc* function, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS) {
   va_list varg;
 
   const int default_argcount = 32;

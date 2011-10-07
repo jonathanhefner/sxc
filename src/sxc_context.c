@@ -173,7 +173,7 @@ void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG) {
 }
 
 
-void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
+void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunc func) {
   JMP_BUF jmpbuf;
 
   context->binding = binding;

@@ -44,7 +44,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
       is $HOME/lib;/usr/local/lib;/usr/lib.
   */
 
-  static SxcLibFunction* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
+  static SxcLibFunc* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
     char* lib_name_fixed = fix_lib_name(context, lib_name, lib_name_len, "sxc_%s.dylib", '/');
 
     NSObjectFileImage file;
@@ -79,7 +79,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
       }
 
       /* SUCCESS! */
-      return (SxcLibFunction*)NSAddressOfSymbol(symbol);
+      return (SxcLibFunc*)NSAddressOfSymbol(symbol);
 
     } else {
       switch (return_code) {
@@ -124,7 +124,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
         6. The directories that are listed in the PATH environment variable.
   */
 
-  static SxcLibFunction* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
+  static SxcLibFunc* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
     char* lib_name_fixed = fix_lib_name(context, lib_name, lib_name_len, "sxc_%s.dll", '\\');
 
     HINSTANCE library;
@@ -137,7 +137,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
       func = GetProcAddress(library, SXC_LIB_REGISTER_FUNC);
       if (func != NULL) {
         /* SUCCESS! */
-        return (SxcLibFunction*)func;
+        return (SxcLibFunc*)func;
       }
     }
 
@@ -162,7 +162,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
         * directories specified by the _CS_LIBPATH configuration string
   */
 
-  static SxcLibFunction* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
+  static SxcLibFunc* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
     char* lib_name_fixed = fix_lib_name(context, lib_name, lib_name_len, "libsxc_%s.so", '/');
 
     void* library;
@@ -173,7 +173,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
       func = dlsym(library, SXC_LIB_REGISTER_FUNC);
       if (func != NULL) {
         /* SUCCESS! */
-        return (SxcLibFunction*)func;
+        return (SxcLibFunc*)func;
       }
     }
 
@@ -189,7 +189,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
 
 typedef struct _LoadedLib {
   char* name;
-  SxcLibFunction* register_func;
+  SxcLibFunc* register_func;
   struct _LoadedLib* next;
 } LoadedLib;
 

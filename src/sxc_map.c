@@ -9,7 +9,7 @@ SxcMap* sxc_map_new(SxcContext* context, void* map_type) {
   return (context->binding->map_new)(context, map_type);
 }
 
-void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunction initialzier,
+void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialzier,
                       const SxcLibMethod* methods, const SxcLibProperty* properties) {
   const SxcLibMethod no_methods[] = { {0} };
   const SxcLibProperty no_properties[] = { {0} };

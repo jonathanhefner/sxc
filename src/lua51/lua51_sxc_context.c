@@ -15,7 +15,7 @@ static SxcString* string_intern(SxcContext* context, const char* data, int lengt
 
 
 static int l_maptype_metatable_index(lua_State* L) {
-  SxcLibFunction* getter;
+  SxcLibFunc* getter;
 
   /* check for method first (return if found) */
   lua_pushvalue(L, 2/*property name*/);
@@ -30,10 +30,10 @@ static int l_maptype_metatable_index(lua_State* L) {
     /* check getters next (invoke if found) */
     lua_pushvalue(L, 2/*property name*/);
     lua_rawget(L, lua_upvalueindex(2/*getters*/));
-    getter = (SxcLibFunction*)lua_touserdata(L, -1);
+    getter = (SxcLibFunc*)lua_touserdata(L, -1);
 
     if (getter != NULL) {
-      libfunction_invoke(getter, L, 1);
+      libfunc_invoke(getter, L, 1);
       /* keep getter return value */
       lua_settop(L, 3);
       return 1;
@@ -45,19 +45,19 @@ static int l_maptype_metatable_index(lua_State* L) {
 }
 
 static int l_maptype_metatable_newindex(lua_State* L) {
-  SxcLibFunction* setter;
+  SxcLibFunc* setter;
 
   /* check for setter */
   lua_pushvalue(L, 2/*property name*/); /* 2nd arg is property name */
   lua_rawget(L, lua_upvalueindex(1));
-  setter = (SxcLibFunction*)lua_touserdata(L, -1);
+  setter = (SxcLibFunc*)lua_touserdata(L, -1);
   lua_pop(L, 1);
 
   if (setter != NULL) {
     /* manipulate args on stack for setter */
     lua_replace(L, 2/*property name*/); /* make property value (3rd) arg the 2nd arg */
 
-    libfunction_invoke(setter, L, 2);
+    libfunc_invoke(setter, L, 2);
 
     /* ignore setter return value */
     lua_settop(L, 3);
@@ -73,7 +73,7 @@ static int l_maptype_metatable_newindex(lua_State* L) {
 }
 
 static int l_maptype_metatable_call(lua_State* L) {
-  SxcLibFunction* initializer = (SxcLibFunction*)lua_touserdata(L, lua_upvalueindex(2));
+  SxcLibFunc* initializer = (SxcLibFunc*)lua_touserdata(L, lua_upvalueindex(2));
 
   /* construct object */
   lua_newtable(L);
@@ -87,7 +87,7 @@ static int l_maptype_metatable_call(lua_State* L) {
     /* manipulate args on stack for initializer */
     lua_insert(L, 1); /* move object to 1st arg position */
 
-    libfunction_invoke(initializer, L, lua_gettop(L));
+    libfunc_invoke(initializer, L, lua_gettop(L));
 
     /* ignore initializer return value and put object in place to be returned */
     lua_pop(L, 2);
@@ -113,8 +113,8 @@ printf("in maptype_metatable, is_static:%d\n", is_static);
     for (i = 0; methods[i].name != NULL; i += 1) {
       if (is_static == methods[i].is_static || (is_static && methods[i].is_static)) {
         lua_pushstring(L, methods[i].name);
-          lua_pushlightuserdata(L, methods[i].function);
-        lua_pushcclosure(L, l_libfunction_invoke, 1);
+          lua_pushlightuserdata(L, methods[i].func);
+        lua_pushcclosure(L, l_libfunc_invoke, 1);
         lua_rawset(L, -3);
       }
     }
@@ -154,7 +154,7 @@ printf("done maptype_metatable\n");
 }
 
 
-static void* map_newtype(SxcContext* context, const char* name, SxcLibFunction initializer,
+static void* map_newtype(SxcContext* context, const char* name, SxcLibFunc initializer,
                           const SxcLibMethod* methods, const SxcLibProperty* properties) {
   lua_State* L = (lua_State*)context->underlying;
   int ctor_index;
@@ -225,13 +225,13 @@ static SxcMap* map_new(SxcContext* context, void* map_type) {
 }
 
 
-static SxcFunction* function_wrap(SxcContext* context, SxcLibFunction func) {
+static SxcFunc* function_wrap(SxcContext* context, SxcLibFunc func) {
   lua_State* L = (lua_State*)context->underlying;
 
   luaL_checkstack(L, 2 + 2, "");
   lua_pushlightuserdata(L, func);
-  lua_pushcclosure(L, l_libfunction_invoke, 1);
-  return get_function(context, -1);
+  lua_pushcclosure(L, l_libfunc_invoke, 1);
+  return get_func(context, -1);
 }
 
 

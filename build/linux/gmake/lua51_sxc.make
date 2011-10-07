@@ -64,10 +64,10 @@ ifeq ($(config),release)
 endif
 
 OBJECTS := \
-	$(OBJDIR)/lua51_sxc.o \
-	$(OBJDIR)/lua51_sxc_context.o \
-	$(OBJDIR)/lua51_sxc_function.o \
 	$(OBJDIR)/lua51_sxc_map.o \
+	$(OBJDIR)/lua51_sxc_context.o \
+	$(OBJDIR)/lua51_sxc_func.o \
+	$(OBJDIR)/lua51_sxc.o \
 
 RESOURCES := \
 
@@ -128,16 +128,16 @@ $(GCH): $(PCH)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 endif
 
-$(OBJDIR)/lua51_sxc.o: ../../../src/lua51/lua51_sxc.c
+$(OBJDIR)/lua51_sxc_map.o: ../../../src/lua51/lua51_sxc_map.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/lua51_sxc_context.o: ../../../src/lua51/lua51_sxc_context.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/lua51_sxc_function.o: ../../../src/lua51/lua51_sxc_function.c
+$(OBJDIR)/lua51_sxc_func.o: ../../../src/lua51/lua51_sxc_func.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
-$(OBJDIR)/lua51_sxc_map.o: ../../../src/lua51/lua51_sxc_map.c
+$(OBJDIR)/lua51_sxc.o: ../../../src/lua51/lua51_sxc.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 

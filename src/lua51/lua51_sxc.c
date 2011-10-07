@@ -12,28 +12,28 @@ printf("in luaopen\n");
 
   /* create require_sxc function */
   lua_pushlightuserdata(L, sxc_load);
-  lua_pushcclosure(L, l_libfunction_invoke, 1);
+  lua_pushcclosure(L, l_libfunc_invoke, 1);
   lua_setglobal(L, "require_sxc");
 
   return 0;
 }
 
 
-int l_libfunction_invoke(lua_State* L) {
-  return libfunction_invoke((SxcLibFunction*)lua_touserdata(L, lua_upvalueindex(1)), L, lua_gettop(L));
+int l_libfunc_invoke(lua_State* L) {
+  return libfunc_invoke((SxcLibFunc*)lua_touserdata(L, lua_upvalueindex(1)), L, lua_gettop(L));
 }
 
 
 
 
-int libfunction_invoke(SxcLibFunction* func, lua_State* L, const int argcount) {
+int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
 
   sxc_try(&context, &CONTEXT_BINDING, L, argcount, func);
   push_value(&context, &context.return_value);
   if (final_top < lua_gettop(L)) {
-    /* NOTE after this point no SxcStrings, SxcMaps, or SxcFunctions are valid,
+    /* NOTE after this point no SxcStrings, SxcMaps, or SxcFuncs are valid,
       because their index into the stack may be one replaced/popped below */
     lua_replace(L, final_top);
     lua_settop(L, final_top);
@@ -123,16 +123,16 @@ SxcMap* get_map(SxcContext* context, int index, int is_list) {
 }
 
 
-SxcFunction* get_function(SxcContext* context, int index) {
+SxcFunc* get_func(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcFunction* f = sxc_alloc(context, sizeof(SxcFunction) + sizeof(int));
+  SxcFunc* f = sxc_alloc(context, sizeof(SxcFunc) + sizeof(int));
 
   if (index < 0) {
     index += lua_gettop(L) + 1;
   }
 
   f->context = context;
-  f->binding = &FUNCTION_BINDING;
+  f->binding = &FUNC_BINDING;
   f->underlying = f + 1;
   *(int*)(f->underlying) = index;
   return f;
@@ -171,7 +171,7 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
       return;
 
     case LUA_TFUNCTION:
-      sxc_value_set(return_value, sxc_function, get_function(context, index));
+      sxc_value_set(return_value, sxc_func, get_func(context, index));
       return;
   }
 }
@@ -209,8 +209,8 @@ printf("in push_value, type:%d\n", value->type);
       lua_pushvalue(L, *(int*)(value->data.map->underlying));
       return;
 
-    case sxc_function:
-      lua_pushvalue(L, *(int*)(value->data.function->underlying));
+    case sxc_func:
+      lua_pushvalue(L, *(int*)(value->data.func->underlying));
       return;
   }
 }
