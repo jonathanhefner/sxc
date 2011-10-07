@@ -93,9 +93,6 @@ void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG);
 
 int sxc_value_get(SxcValue* value, SxcDataType type, SXC_DATA_DEST);
 void sxc_value_set(SxcValue* value, SxcDataType type, SXC_DATA_ARG);
-void sxc_value_intern(SxcValue* value);
-
-SxcString* sxc_string_new(SxcContext* context, char* data, int length);
 
 SxcMap* sxc_map_new(SxcContext* context, void* map_type);
 void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialzier,
@@ -107,7 +104,6 @@ void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG
 int sxc_map_length(SxcMap* map);
 void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
 
-SxcFunc* sxc_func_new(SxcContext* context, SxcLibFunc func);
 int sxc_func_invoke(SxcFunc* func, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS);
 
 

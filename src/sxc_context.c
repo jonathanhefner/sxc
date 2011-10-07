@@ -21,6 +21,7 @@
 
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
+void sxc_value_intern(SxcValue* value);
 
 
 

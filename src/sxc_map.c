@@ -3,6 +3,7 @@
 
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
+void sxc_value_intern(SxcValue* value);
 
 
 SxcMap* sxc_map_new(SxcContext* context, void* map_type) {
@@ -44,6 +45,7 @@ void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG) {
   sxc_value_setv(&value, type, varg);
   va_end(varg);
 
+  sxc_value_intern(&value);
   (map->binding->intset)(map, key, &value);
 }
 
@@ -71,6 +73,7 @@ void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG
   sxc_value_setv(&value, type, varg);
   va_end(varg);
 
+  sxc_value_intern(&value);
   (map->binding->strset)(map, key, &value);
 }
 

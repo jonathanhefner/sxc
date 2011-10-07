@@ -190,7 +190,7 @@ static int to_cstring(SxcValue* value, char** dest) {
 
 
 static int to_string(SxcValue* value, SxcString** dest) {
-  char cpointer[sizeof(void*)];
+  char cpointer_bytes[sizeof(void*)];
   char* cstring;
 
   switch (value->type) {
@@ -198,23 +198,29 @@ static int to_string(SxcValue* value, SxcString** dest) {
       *dest = value->data.string;
       return SXC_SUCCESS;
 
+        #define INTERN_STRING(STR, LEN) \
+          (value->context->binding->string_intern)(value->context, STR, LEN);
+
     case sxc_cpointer:
       /* TODO? is this portable? */
-      memcpy(cpointer, &(value->data.cpointer), sizeof(void*));
-      *dest = sxc_string_new(value->context, cpointer, sizeof(cpointer));
+      memcpy(cpointer_bytes, &(value->data.cpointer), sizeof(void*));
+
+      *dest = INTERN_STRING(cpointer_bytes, sizeof(cpointer_bytes));
       return SXC_SUCCESS;
 
     case sxc_cchars:
-      *dest = sxc_string_new(value->context, value->data.cchars.array, value->data.cchars.length);
+      *dest = INTERN_STRING(value->data.cchars.array, value->data.cchars.length);
       return SXC_SUCCESS;
 
     default:
       if (to_cstring(value, &cstring)) {
-        *dest = sxc_string_new(value->context, cstring, -1);
+        *dest = INTERN_STRING(cstring, strlen(cstring));
         return SXC_SUCCESS;
       } else {
         return SXC_FAILURE;
       }
+
+        #undef INTERN_STRING
   }
 }
 
@@ -271,7 +277,7 @@ static int to_func(SxcValue* value, SxcFunc** dest) {
       return SXC_SUCCESS;
 
     case sxc_cfunc:
-      *dest = sxc_func_new(value->context, value->data.cfunc);
+      *dest = (value->context->binding->func_wrap)(value->context, value->data.cfunc);
       return SXC_SUCCESS;
 
     default:

@@ -3,13 +3,8 @@
 
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
+void sxc_value_intern(SxcValue* value);
 
-
-/* TODO? remove b/c sxc_map_deftype obviates the need for this */
-SxcFunc* sxc_func_new(SxcContext* context, SxcLibFunc func) {
-  if (func == NULL) return NULL;
-  return (context->binding->func_wrap)(context, func);
-}
 
 #include <stdio.h>
 /* TODO this function signature still feels off... how can it be more intuitive? */
