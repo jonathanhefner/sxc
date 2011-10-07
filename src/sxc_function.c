@@ -31,7 +31,7 @@ printf("in sxc_function_invoke\n");
 
   /* allocate more room for args if necessary (unlikely) */
   if (argcount > default_argcount) {
-    arg_valueptrs = sxc_context_alloc(function->context, argcount * (sizeof(SxcValue*) + sizeof(SxcValue)));
+    arg_valueptrs = sxc_alloc(function->context, argcount * (sizeof(SxcValue*) + sizeof(SxcValue)));
     arg_values = (SxcValue*)(arg_valueptrs + argcount);
   }
 

@@ -27,7 +27,7 @@ void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 /* TODO? change allocated chunks to be stored in a global linked list (with
     atomic, lock-free next pointers) and rarely freed, and reduce the initial
     space allocated on the stack (to zero?) */
-void* sxc_context_alloc(SxcContext* context, int size) {
+void* sxc_alloc(SxcContext* context, int size) {
   SxcMemoryChunk* walker = &(context->_firstchunk);
   void* retval;
   int new_free_space;
@@ -59,7 +59,7 @@ printf("...new node space: %d\n", new_free_space);
 
     walker->next_chunk = malloc(sizeof(SxcMemoryChunk) + new_free_space - 1 /* one byte already in struct */);
     if (walker->next_chunk == NULL) {
-      return sxc_context_error(context, "Error: out of memory");
+      return sxc_error(context, "Error: out of memory");
     }
 
     walker = walker->next_chunk;
@@ -86,7 +86,7 @@ void* sxc_context_realloc(SxcContext* context) {
 void sxc_context_free()*/
 
 
-void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
+void* sxc_error(SxcContext* context, const char* message_format, ...) {
   va_list varg;
   char* buffer;
   int buffer_len;
@@ -97,7 +97,7 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
       otherwise, do the best we can by allocating extra buffer space */
   #if __STDC_VERSION__ >= 199901L
     buffer_len = strlen(message_format) * 8;
-    buffer = sxc_context_alloc(context, buffer_len);
+    buffer = sxc_alloc(context, buffer_len);
     va_start(varg, message_format);
     vsnprintf(buffer, buffer_len, message_format, varg);
     va_end(varg);
@@ -107,7 +107,7 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
     if ((actual_len + 1) > buffer_len) {
       /* TODO sxc_context_free(buffer) */
       buffer_len = actual_len + 1;
-      buffer = sxc_context_alloc(context, buffer_len);
+      buffer = sxc_alloc(context, buffer_len);
 
       va_start(varg, message_format);
       vsnprintf(buffer, buffer_len, message_format, varg);
@@ -117,7 +117,7 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
       while (actual_len < 0) {
         /* TODO sxc_context_free(buffer) */
         buffer_len *= 4;
-        buffer = sxc_context_alloc(context, buffer_len);
+        buffer = sxc_alloc(context, buffer_len);
 
         va_start(varg, message_format);
         actual_len = vsnprintf(buffer, buffer_len, message_format, varg);
@@ -127,7 +127,7 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
 
   #else
     buffer_len = strlen(message_format) * 32;
-    buffer = sxc_context_alloc(context, buffer_len);
+    buffer = sxc_alloc(context, buffer_len);
 
     va_start(varg, message_format);
     actual_len = vsprintf(buffer, message_format, varg);
@@ -145,7 +145,7 @@ void* sxc_context_error(SxcContext* context, const char* message_format, ...) {
 }
 
 
-int sxc_context_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST) {
+int sxc_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval;
   SxcValue value;
@@ -173,7 +173,7 @@ void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG) {
 }
 
 
-void sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
+void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
   JMP_BUF jmpbuf;
 
   context->binding = binding;
@@ -191,7 +191,7 @@ void sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* unde
 }
 
 
-void sxc_context_finally(SxcContext* context) {
+void sxc_finally(SxcContext* context) {
   SxcMemoryChunk* walker = context->_firstchunk.next_chunk;
   while (walker != NULL) {
     context->_firstchunk.next_chunk = walker->next_chunk;

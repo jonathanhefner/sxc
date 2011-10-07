@@ -30,7 +30,7 @@ int libfunction_invoke(SxcLibFunction* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
 
-  sxc_context_try(&context, &CONTEXT_BINDING, L, argcount, func);
+  sxc_try(&context, &CONTEXT_BINDING, L, argcount, func);
   push_value(&context, &context.return_value);
   if (final_top < lua_gettop(L)) {
     /* NOTE after this point no SxcStrings, SxcMaps, or SxcFunctions are valid,
@@ -39,7 +39,7 @@ int libfunction_invoke(SxcLibFunction* func, lua_State* L, const int argcount) {
     lua_settop(L, final_top);
   }
 
-  sxc_context_finally(&context);
+  sxc_finally(&context);
 
   return context.has_error ? lua_error(L) : 1;
 }
@@ -89,7 +89,7 @@ printf("done check empty\n");
 /* TODO convert `*(int*)(s->underlying) = index` to `s->underlying = INT2PTR(index)` */
 SxcString* get_string(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcString* s = sxc_context_alloc(context, sizeof(SxcString) + sizeof(int));
+  SxcString* s = sxc_alloc(context, sizeof(SxcString) + sizeof(int));
   size_t length;
 
   if (index < 0) {
@@ -108,7 +108,7 @@ SxcString* get_string(SxcContext* context, int index) {
 
 SxcMap* get_map(SxcContext* context, int index, int is_list) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcMap* m = sxc_context_alloc(context, sizeof(SxcMap) + sizeof(int));
+  SxcMap* m = sxc_alloc(context, sizeof(SxcMap) + sizeof(int));
 
   if (index < 0) {
     index += lua_gettop(L) + 1;
@@ -125,7 +125,7 @@ SxcMap* get_map(SxcContext* context, int index, int is_list) {
 
 SxcFunction* get_function(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcFunction* f = sxc_context_alloc(context, sizeof(SxcFunction) + sizeof(int));
+  SxcFunction* f = sxc_alloc(context, sizeof(SxcFunction) + sizeof(int));
 
   if (index < 0) {
     index += lua_gettop(L) + 1;

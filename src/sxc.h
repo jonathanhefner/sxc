@@ -87,9 +87,9 @@ typedef struct _SxcContextBinding {
 #define SXC_DATA_DEST ...
 #define SXC_DATA_DEST_ARGS ...
 
-void* sxc_context_alloc(SxcContext* context, int size);
-void* sxc_context_error(SxcContext* context, const char* message_format, ...);
-int sxc_context_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST);
+void* sxc_alloc(SxcContext* context, int size);
+void* sxc_error(SxcContext* context, const char* message_format, ...);
+int sxc_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST);
 void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG);
 
 int sxc_value_get(SxcValue* value, SxcDataType type, SXC_DATA_DEST);
@@ -116,8 +116,8 @@ int sxc_function_invoke(SxcFunction* function, int argcount, SxcDataType return_
 /***** Binding Prototypes *****/
 
 void sxc_load(SxcContext* context);
-void sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
-void sxc_context_finally(SxcContext* context);
+void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
+void sxc_finally(SxcContext* context);
 
 
 

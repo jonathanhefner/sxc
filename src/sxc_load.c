@@ -12,7 +12,7 @@
 
 static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_name_len, const char* name_format, char slash) {
   const int name_format_len = strlen(name_format);
-  char* lib_name_fixed = sxc_context_alloc(context, lib_name_len + name_format_len + 1);
+  char* lib_name_fixed = sxc_alloc(context, lib_name_len + name_format_len + 1);
   int i = lib_name_len - 1;
   int last_slash;
 
@@ -57,7 +57,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
     const char *error_message;
 
     if(!_dyld_present()) {
-      return sxc_context_error(context, "Could not load library %s (%s): dyld is not present", lib_name, lib_name_fixed);
+      return sxc_error(context, "Could not load library %s (%s): dyld is not present", lib_name, lib_name_fixed);
     }
 
     return_code = NSCreateObjectFileImageFromFile(lib_name_fixed, &file);
@@ -70,12 +70,12 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
 
       if (module == NULL) {
         NSLinkEditError(&error, &error_num, &error_file, &error_message);
-        return sxc_context_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
+        return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
       }
 
       symbol = NSLookupSymbolInModule(module, SXC_LIB_REGISTER_FUNC);
       if (symbol == NULL) {
-        return sxc_context_error(context, "Could not load library %s (%s): registration function not found", lib_name, lib_name_fixed);
+        return sxc_error(context, "Could not load library %s (%s): registration function not found", lib_name, lib_name_fixed);
       }
 
       /* SUCCESS! */
@@ -96,7 +96,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
           error_message = "unable to load library";
       }
 
-      return sxc_context_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
+      return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
     }
   }
 
@@ -144,9 +144,9 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
     error = GetLastError();
     if (FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
           NULL, error, 0, error_message, sizeof(error_message), NULL)) {
-      return sxc_context_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
+      return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
     } else {
-      return sxc_context_error(context, "Could not load library %s (%s): system error %d", lib_name, lib_name_fixed, error);
+      return sxc_error(context, "Could not load library %s (%s): system error %d", lib_name, lib_name_fixed, error);
     }
   }
 
@@ -177,7 +177,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
       }
     }
 
-    return sxc_context_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, dlerror());
+    return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, dlerror());
   }
 
 
@@ -203,8 +203,8 @@ void sxc_load(SxcContext* context) {
 printf("in sxc_load, lib_name:%p lib_name_len:%p\n", &lib_name, &lib_name_len);
 
   /* extract lib_name from args */
-  if (sxc_context_arg(context, 0, sxc_cchars, &lib_name, &lib_name_len) == SXC_FAILURE) {
-    sxc_context_error(context, "First argument to library loader must be a library name (string)");
+  if (sxc_arg(context, 0, sxc_cchars, &lib_name, &lib_name_len) == SXC_FAILURE) {
+    sxc_error(context, "First argument to library loader must be a library name (string)");
     return;
   }
 

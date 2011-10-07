@@ -136,14 +136,14 @@ static int to_cstring(SxcValue* value, char** dest) {
       /* format the number
        *    NOTE: max digits in a 32-bit signed int is 10 (not including sign)
        *    NOTE: max digits in a 64-bit signed int is 19 (not including sign) */
-      *dest = sxc_context_alloc(value->context, (sizeof(int) <= 4 ? 11 : 20) + 1);
+      *dest = sxc_alloc(value->context, (sizeof(int) <= 4 ? 11 : 20) + 1);
       sprintf(*dest, "%d", value->data.aint);
       return SXC_SUCCESS;
 
     case sxc_double:
       /* TODO? return literal strings for NaN, +Inf and -Inf */
       /* format the number into no more than 20 characters (max digits in a 64-bit signed int is 19) */
-      *dest = sxc_context_alloc(value->context, 20 + 1);
+      *dest = sxc_alloc(value->context, 20 + 1);
 
       /* try to format as long integer first, if there is no mantissa and the integer portion fits */
       if (value->data.adouble == (double)(long int)(value->data.adouble) && sizeof(long int) <= 8) {
@@ -163,7 +163,7 @@ static int to_cstring(SxcValue* value, char** dest) {
       if (value->data.string->is_terminated) {
         *dest = value->data.string->data;
       } else {
-        *dest = sxc_context_alloc(value->context, value->data.string->length + 1);
+        *dest = sxc_alloc(value->context, value->data.string->length + 1);
         memcpy(*dest, value->data.string->data, value->data.string->length);
         *dest[value->data.string->length] = '\0';
       }
@@ -177,7 +177,7 @@ static int to_cstring(SxcValue* value, char** dest) {
       if (value->data.cchars.array[value->data.cchars.length - 1] == '\0') {
         *dest = value->data.cchars.array;
       } else {
-        *dest = sxc_context_alloc(value->context, value->data.cchars.length + 1);
+        *dest = sxc_alloc(value->context, value->data.cchars.length + 1);
         memcpy(*dest, value->data.cchars.array, value->data.cchars.length);
         *dest[value->data.cchars.length] = '\0';
       }
@@ -349,27 +349,27 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
     target primivitve type (e.g. non-numeric strings targeting doubles) will be
     naturally converted to an array filled with all zero values */
 
-#define CSTRINGS2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                                \
-  *dest_len = value->data.cstrings.length;                                        \
-  *dest = sxc_context_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
-  tmp_value.context = value->context;                                             \
-  tmp_value.type = sxc_cstring;                                                   \
-  for (i = 0; i < *dest_len; i += 1) {                                            \
-    tmp_value.data.cstring = value->data.cstrings.array[i];                       \
-    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                                \
-      (*dest)[i] = (ELEMENT_TYPE)0;                                               \
-    }                                                                             \
+#define CSTRINGS2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                        \
+  *dest_len = value->data.cstrings.length;                                \
+  *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
+  tmp_value.context = value->context;                                     \
+  tmp_value.type = sxc_cstring;                                           \
+  for (i = 0; i < *dest_len; i += 1) {                                    \
+    tmp_value.data.cstring = value->data.cstrings.array[i];               \
+    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                       \
+      (*dest)[i] = (ELEMENT_TYPE)0;                                       \
+    }                                                                     \
   }
 
-#define MAP2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                                     \
-  *dest_len = sxc_map_length(value->data.map);                                    \
-  *dest = sxc_context_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
-  tmp_value.context = value->context;                                             \
-  for (i = 0; i < *dest_len; i += 1) {                                            \
-    ((value->data.map)->binding->intget)(value->data.map, i, &tmp_value);          \
-    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                                \
-      (*dest)[i] = (ELEMENT_TYPE)0;                                               \
-    }                                                                             \
+#define MAP2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                             \
+  *dest_len = sxc_map_length(value->data.map);                            \
+  *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
+  tmp_value.context = value->context;                                     \
+  for (i = 0; i < *dest_len; i += 1) {                                    \
+    ((value->data.map)->binding->intget)(value->data.map, i, &tmp_value); \
+    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                       \
+      (*dest)[i] = (ELEMENT_TYPE)0;                                       \
+    }                                                                     \
   }
 
 
@@ -385,7 +385,7 @@ static int to_cbools(SxcValue* value, char** dest, int* dest_len) {
 
     case sxc_cints:
       *dest_len = value->data.cints.length;
-      *dest = sxc_context_alloc(value->context, sizeof(char) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(char) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = value->data.cints.array[i] != 0;
       }
@@ -393,7 +393,7 @@ static int to_cbools(SxcValue* value, char** dest, int* dest_len) {
 
     case sxc_cdoubles:
       *dest_len = value->data.cdoubles.length;
-      *dest = sxc_context_alloc(value->context, sizeof(char) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(char) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = value->data.cdoubles.array[i] != 0.0;
       }
@@ -425,7 +425,7 @@ static int to_cints(SxcValue* value, int** dest, int* dest_len) {
 
     case sxc_cbools:
       *dest_len = value->data.cbools.length;
-      *dest = sxc_context_alloc(value->context, sizeof(int) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(int) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = (int)value->data.cbools.array[i];
       }
@@ -433,7 +433,7 @@ static int to_cints(SxcValue* value, int** dest, int* dest_len) {
 
     case sxc_cdoubles:
       *dest_len = value->data.cdoubles.length;
-      *dest = sxc_context_alloc(value->context, sizeof(int) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(int) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = (int)value->data.cdoubles.array[i];
       }
@@ -465,7 +465,7 @@ static int to_cdoubles(SxcValue* value, double** dest, int* dest_len) {
 
     case sxc_cbools:
       *dest_len = value->data.cbools.length;
-      *dest = sxc_context_alloc(value->context, sizeof(double) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(double) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = (double)value->data.cbools.array[i];
       }
@@ -473,7 +473,7 @@ static int to_cdoubles(SxcValue* value, double** dest, int* dest_len) {
 
     case sxc_cints:
       *dest_len = value->data.cints.length;
-      *dest = sxc_context_alloc(value->context, sizeof(double) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(double) * (*dest_len));
       for (i = 0; i < *dest_len; i += 1) {
         (*dest)[i] = (double)value->data.cints.array[i];
       }
@@ -510,16 +510,16 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
 
       /* converting primitive arrays into cstring array is yet another
           straightforward but verbose operation, so we use yet another macro */
-      #define ARRAY2CSTRINGS(ARRAY_NAME, ELEMENT_TYPE, ELEMENT_DATA_NAME)       \
-        *dest_len = value->data.ARRAY_NAME.length;                              \
-        *dest = sxc_context_alloc(value->context, sizeof(char*) * (*dest_len)); \
-        tmp_value.context = value->context;                                     \
-        tmp_value.type = ELEMENT_TYPE;                                          \
-        for (i = 0; i < *dest_len; i += 1) {                                    \
-          tmp_value.data.ELEMENT_DATA_NAME = value->data.ARRAY_NAME.array[i];   \
-          if (!to_cstring(&tmp_value, &((*dest)[i]))) {                          \
-            (*dest)[i] = NULL;                                                  \
-          }                                                                     \
+      #define ARRAY2CSTRINGS(ARRAY_NAME, ELEMENT_TYPE, ELEMENT_DATA_NAME)     \
+        *dest_len = value->data.ARRAY_NAME.length;                            \
+        *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));       \
+        tmp_value.context = value->context;                                   \
+        tmp_value.type = ELEMENT_TYPE;                                        \
+        for (i = 0; i < *dest_len; i += 1) {                                  \
+          tmp_value.data.ELEMENT_DATA_NAME = value->data.ARRAY_NAME.array[i]; \
+          if (!to_cstring(&tmp_value, &((*dest)[i]))) {                       \
+            (*dest)[i] = NULL;                                                \
+          }                                                                   \
         }
 
     case sxc_cbools:
@@ -539,7 +539,7 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
 
     case sxc_map:
       *dest_len = sxc_map_length(value->data.map);
-      *dest = sxc_context_alloc(value->context, sizeof(char*) * (*dest_len));
+      *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));
       tmp_value.context = value->context;
       for (i = 0; i < *dest_len; i += 1) {
         ((value->data.map)->binding->intget)(value->data.map, i, &tmp_value);
