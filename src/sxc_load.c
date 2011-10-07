@@ -31,77 +31,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
 }
 
 
-#if defined(_OSX_10_2_)
-  /* NOTE this implementation is UNTESTED and therefore NOT SUPPORTED */
-  #include <mach-o/dyld.h>
-  /* According to http://developer.apple.com/library/mac/#documentation/DeveloperTools/Reference/MachOReference/Reference/reference.html
-
-      The dynamic loader looks in the paths specified by a set of environment
-      variables, and in the process' current directory, when it searches for a
-      library. The environment variables are LD_LIBRARY_PATH, DYLD_LIBRARY_PATH,
-      and DYLD_FALLBACK_LIBRARY_PATH. The default value of
-      DYLD_FALLBACK_LIBRARY_PATH (used when this variable is not set),
-      is $HOME/lib;/usr/local/lib;/usr/lib.
-  */
-
-  static SxcLibFunc* get_register_func(SxcContext* context, char* lib_name, int lib_name_len) {
-    char* lib_name_fixed = fix_lib_name(context, lib_name, lib_name_len, "sxc_%s.dylib", '/');
-
-    NSObjectFileImage file;
-    NSModule module;
-    NSSymbol symbol;
-    NSObjectFileImageReturnCode return_code;
-    NSLinkEditErrors error;
-    int error_num;
-    const char *error_file;
-    const char *error_message;
-
-    if(!_dyld_present()) {
-      return sxc_error(context, "Could not load library %s (%s): dyld is not present", lib_name, lib_name_fixed);
-    }
-
-    return_code = NSCreateObjectFileImageFromFile(lib_name_fixed, &file);
-
-    if (return_code == NSObjectFileImageSuccess) {
-      /* NOTE not using the NSLINKMODULE_OPTION_PRIVATE flag in order to mimic
-          the behavior on Windows and Unix */
-      module = NSLinkModule(file, lib_name_fixed, NSLINKMODULE_OPTION_RETURN_ON_ERROR);
-      NSDestroyObjectFileImage(file);
-
-      if (module == NULL) {
-        NSLinkEditError(&error, &error_num, &error_file, &error_message);
-        return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
-      }
-
-      symbol = NSLookupSymbolInModule(module, SXC_LIB_REGISTER_FUNC);
-      if (symbol == NULL) {
-        return sxc_error(context, "Could not load library %s (%s): registration function not found", lib_name, lib_name_fixed);
-      }
-
-      /* SUCCESS! */
-      return (SxcLibFunc*)NSAddressOfSymbol(symbol);
-
-    } else {
-      switch (return_code) {
-        case NSObjectFileImageInappropriateFile:
-          error_message = "file is not a bundle";
-        case NSObjectFileImageArch:
-          error_message = "library is for wrong CPU type";
-        case NSObjectFileImageFormat:
-          error_message = "bad format";
-        case NSObjectFileImageAccess:
-          error_message = "cannot access file";
-        case NSObjectFileImageFailure:
-        default:
-          error_message = "unable to load library";
-      }
-
-      return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, error_message);
-    }
-  }
-
-
-#elif defined(_WINDOWS_)
+#if defined(_WIN32)
   #include <windows.h>
   /* According to http://msdn.microsoft.com/en-us/library/ms684175%28v=vs.85%29.aspx
 
@@ -150,8 +80,7 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
     }
   }
 
-
-#elif defined(_UNIX_)
+#else
   #include <dlfcn.h>
   /* According to http://www.qnx.com/developers/docs/6.4.0/neutrino/lib_ref/d/dlopen.html
 
@@ -180,9 +109,6 @@ static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_nam
     return sxc_error(context, "Could not load library %s (%s): %s", lib_name, lib_name_fixed, dlerror());
   }
 
-
-#else
-  #error Could not determine target platform for dynamic library loading.  Define _UNIX_, _WINDOWS_, or _OSX_10_2_.
 #endif
 
 

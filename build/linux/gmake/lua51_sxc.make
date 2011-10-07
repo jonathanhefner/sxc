@@ -23,7 +23,7 @@ ifeq ($(config),debug)
   OBJDIR     = obj/Debug/lua51_sxc
   TARGETDIR  = ../../../bin/linux
   TARGET     = $(TARGETDIR)/lua51_sxc.so
-  DEFINES   += -D_UNIX_
+  DEFINES   += 
   INCLUDES  += 
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -g -Wall -Werror -fPIC
@@ -45,7 +45,7 @@ ifeq ($(config),release)
   OBJDIR     = obj/Release/lua51_sxc
   TARGETDIR  = ../../../bin/linux
   TARGET     = $(TARGETDIR)/lua51_sxc.so
-  DEFINES   += -D_UNIX_
+  DEFINES   += 
   INCLUDES  += 
   CPPFLAGS  += -MMD -MP $(DEFINES) $(INCLUDES)
   CFLAGS    += $(CPPFLAGS) $(ARCH) -O3 -fPIC

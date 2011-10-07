@@ -1,9 +1,8 @@
 solution "SxC"
-  location ("build/" .. os.get() .. "/" .. _ACTION)
+  location ("build/" .. os.get() .. (_ACTION and ("/" .. _ACTION) or ""))
   targetdir ("bin/" .. os.get())
   kind "SharedLib"
   language "C"
-  defines { (os.get() == "windows" and "_WINDOWS_" or "_UNIX_") }
   configurations { "Debug", "Release" }
   configuration "Debug"
     flags { "Symbols", "ExtraWarnings", "FatalWarnings" }
