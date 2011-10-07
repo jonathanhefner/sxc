@@ -1,5 +1,6 @@
 #include "lua51_sxc.h"
 
+
 static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
@@ -27,12 +28,15 @@ static void map_intset(SxcMap* map, int key, SxcValue* value) {
       interaction with the table is to set its second element, the table will
       still be marked as a list, but the second element will become the first.
       This is because a first and only element of nil is no different than being
-      empty, and because "empty" tables can be ambiguously interpreted as
-      either lists or hashmaps. */
+      empty and because "empty" tables can be ambiguously interpreted as either
+      lists or hashmaps. */
+  /* TODO? add some global constant (e.g. SXC_NIL) to the lua environment that
+      is not nil, but is returned from sxc functions as nil, so that lists with
+      nil first elements can effectively be created */
   if (map->is_list == TABLE_MAYBE_LIST) {
     map->is_list = table_is_list(L, *(int*)map->underlying);
     if (map->is_list == TABLE_MAYBE_LIST) {
-      map->is_list = key == 1 ? TABLE_IS_LIST : TABLE_NOT_LIST;
+      map->is_list = key == 0 ? TABLE_IS_LIST : TABLE_NOT_LIST;
     }
   }
   if (map->is_list) {
@@ -67,7 +71,7 @@ static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
 
 
 int map_length(SxcMap* map) {
-  return -1;
+  return -1; /* rely on sxc feature to compute max int key */
 }
 
 
@@ -94,7 +98,13 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
     get_value(map->context, -2, return_key);
 
     if (return_key->type == sxc_int || return_key->type == sxc_string) {
+      /* adjust list keys to 0-based indexing */
+      if (return_key->type == sxc_int && map->is_list) {
+        return_key->data.aint -= 1;
+      }
+
       get_value(map->context, -1, return_value);
+
       return INT2PTR(lua_gettop(L) - 1);
     }
 
