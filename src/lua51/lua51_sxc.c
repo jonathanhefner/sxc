@@ -29,9 +29,9 @@ int l_libfunction_invoke(lua_State* L) {
 int libfunction_invoke(SxcLibFunction* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
-  SxcValue* return_value = sxc_context_try(&context, &CONTEXT_BINDING, L, argcount, func);
 
-  push_value(&context, return_value);
+  sxc_context_try(&context, &CONTEXT_BINDING, L, argcount, func);
+  push_value(&context, &context.return_value);
   if (final_top < lua_gettop(L)) {
     /* NOTE after this point no SxcStrings, SxcMaps, or SxcFunctions are valid,
       because their index into the stack may be one replaced/popped below */

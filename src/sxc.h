@@ -31,7 +31,7 @@ typedef struct _SxcContext SxcContext;
 
 /***** Library Types *****/
 
-typedef void (SxcLibFunction)(SxcContext* context, SxcValue* return_value);
+typedef void (SxcLibFunction)(SxcContext* context);
 
 typedef struct _SxcLibMethod {
   char* name;
@@ -90,6 +90,7 @@ typedef struct _SxcContextBinding {
 void* sxc_context_alloc(SxcContext* context, int size);
 void* sxc_context_error(SxcContext* context, const char* message_format, ...);
 int sxc_context_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST);
+void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG);
 
 int sxc_value_get(SxcValue* value, SxcDataType type, SXC_DATA_DEST);
 void sxc_value_set(SxcValue* value, SxcDataType type, SXC_DATA_ARG);
@@ -114,8 +115,8 @@ int sxc_function_invoke(SxcFunction* function, int argcount, SxcDataType return_
 
 /***** Binding Prototypes *****/
 
-void sxc_load(SxcContext* context, SxcValue* return_namespace);
-SxcValue* sxc_context_try(SxcContext* context,  SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
+void sxc_load(SxcContext* context);
+void sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func);
 void sxc_context_finally(SxcContext* context);
 
 

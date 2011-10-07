@@ -164,7 +164,16 @@ int sxc_context_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_D
 }
 
 
-SxcValue* sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
+void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG) {
+  va_list varg;
+
+  va_start(varg, type);
+  sxc_value_setv(&context->return_value, type, varg);
+  va_end(varg);
+}
+
+
+void sxc_context_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunction func) {
   JMP_BUF jmpbuf;
 
   context->binding = binding;
@@ -175,12 +184,10 @@ SxcValue* sxc_context_try(SxcContext* context, SxcContextBinding* binding, void*
   context->_firstchunk = (SxcMemoryChunk){SXC_MEMORY_CHUNK_INIT_SIZE, NULL, 0, 0};
 
   if (!(context->has_error = SETJMP(jmpbuf))) {
-    (func)(context, &context->return_value);
+    (func)(context);
   }
 
   sxc_value_intern(&context->return_value);
-
-  return &(context->return_value);
 }
 
 
