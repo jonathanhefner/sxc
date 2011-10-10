@@ -1,9 +1,13 @@
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 #include "sxc.h"
 
+void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value);
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_intern(SxcValue* value);
+
 
 
 SxcMap* sxc_map_new(SxcContext* context, void* map_type) {
@@ -22,10 +26,13 @@ void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialz
 }
 
 
-int sxc_map_intget(SxcMap* map, int key, SxcDataType type, SXC_DATA_DEST) {
+int sxc_map_intget(SxcMap* map, int key, int is_required, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval;
   SxcValue value;
+
+  const char* value_name_format = "element %d";
+  char* value_name;
 
   value.context = map->context;
   (map->binding->intget)(map, key, &value);
@@ -33,6 +40,13 @@ int sxc_map_intget(SxcMap* map, int key, SxcDataType type, SXC_DATA_DEST) {
   va_start(varg, type);
   retval = sxc_value_getv(&value, type, varg);
   va_end(varg);
+
+  if (is_required && retval != SXC_SUCCESS) {
+    value_name = sxc_alloc(map->context, sizeof(char) * (strlen(value_name_format) + 20 + 1));
+    sprintf(value_name, value_name_format, key);
+
+    sxc_typeerror(map->context, value_name, type, &value);
+  }
   return retval;
 }
 
@@ -50,10 +64,13 @@ void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG) {
 }
 
 
-int sxc_map_strget(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_DEST) {
+int sxc_map_strget(SxcMap* map, const char* key, int is_required, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval;
   SxcValue value;
+
+  const char* value_name_format = "element \"%s\"";
+  char* value_name;
 
   value.context = map->context;
   (map->binding->strget)(map, key, &value);
@@ -61,6 +78,13 @@ int sxc_map_strget(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_DEST
   va_start(varg, type);
   retval = sxc_value_getv(&value, type, varg);
   va_end(varg);
+
+  if (is_required && retval != SXC_SUCCESS) {
+    value_name = sxc_alloc(map->context, sizeof(char) * (strlen(value_name_format) + strlen(key) + 1));
+    sprintf(value_name, value_name_format, key);
+
+    sxc_typeerror(map->context, value_name, type, &value);
+  }
   return retval;
 }
 

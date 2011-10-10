@@ -622,7 +622,6 @@ int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg) {
         *(va_arg(varg, SxcValue*)) = *value;
         return SXC_SUCCESS;
       } else {
-        /* TODO unrecognized/invalid type error */
         return SXC_FAILURE;
       }
   }
@@ -676,7 +675,8 @@ void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg) {
         if (type == sxc_value) {
           *value = *va_arg(varg, SxcValue*);
         } else {
-          /* TODO unrecognized/invalid type error */
+          /* TODO unrecognized/invalid type error... but a longjump would
+              probably prevent a closing va_end() */
         }
         break;
     }

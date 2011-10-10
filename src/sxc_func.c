@@ -1,14 +1,16 @@
 #include <stdarg.h>
 #include "sxc.h"
 
+void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value);
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_intern(SxcValue* value);
 
 
+
 #include <stdio.h>
 /* TODO this function signature still feels off... how can it be more intuitive? */
-int sxc_func_invoke(SxcFunc* function, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS) {
+void sxc_func_invoke(SxcFunc* function, int argcount, SxcDataType return_type, SXC_DATA_DEST_ARGS) {
   va_list varg;
 
   const int default_argcount = 32;
@@ -20,7 +22,7 @@ int sxc_func_invoke(SxcFunc* function, int argcount, SxcDataType return_type, SX
 
   int i;
   SxcDataType type;
-  int actual_return;
+  int has_return_value;
 
 printf("in sxc_function_invoke\n");
 
@@ -55,10 +57,14 @@ printf("done interning arg %d\n", i);
 printf("done invoking func\n");
 
   /* extract return_value to dest */
-  va_start(varg, return_type);
-  actual_return = sxc_value_getv(&return_value, return_type, varg);
+  if (return_type != sxc_null) {
+    va_start(varg, return_type);
+    has_return_value = sxc_value_getv(&return_value, return_type, varg);
 printf("done extracting return_value\n");
-  va_end(varg);
+    va_end(varg);
 
-  return actual_return;
+    if (has_return_value != SXC_SUCCESS) {
+      sxc_typeerror(function->context, "return value", return_type, &return_value);
+    }
+  }
 }

@@ -41,6 +41,7 @@ int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
 
   sxc_finally(&context);
 
+  /* TODO? prefix error message with "ERROR: " */
   return context.has_error ? lua_error(L) : 1;
 }
 

@@ -10,6 +10,7 @@
     be found at http://www.lua.org/source/5.1/loadlib.c.html */
 
 
+
 static char* fix_lib_name(SxcContext* context, const char* lib_name, int lib_name_len, const char* name_format, char slash) {
   const int name_format_len = strlen(name_format);
   char* lib_name_fixed = sxc_alloc(context, lib_name_len + name_format_len + 1);
@@ -129,10 +130,7 @@ void sxc_load(SxcContext* context) {
 printf("in sxc_load, lib_name:%p lib_name_len:%p\n", &lib_name, &lib_name_len);
 
   /* extract lib_name from args */
-  if (sxc_arg(context, 0, sxc_cchars, &lib_name, &lib_name_len) == SXC_FAILURE) {
-    sxc_error(context, "First argument to library loader must be a library name (string)");
-    return;
-  }
+  sxc_arg(context, 0, TRUE, sxc_cchars, &lib_name, &lib_name_len);
 
 printf("done extract lib_name from args, name:%s, len:%d\n", lib_name, lib_name_len);
 

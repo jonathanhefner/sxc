@@ -1,7 +1,7 @@
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdarg.h>
 #include "sxc.h"
 
 /* Try to use sigsetjmp instead of setjmp if possible--certain implementations
@@ -19,6 +19,7 @@
 #endif
 
 
+void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value);
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_intern(SxcValue* value);
@@ -78,13 +79,13 @@ printf("...done sxc_context_alloc, free space: %d\n", walker->free_space);
   return retval;
 }
 
-/*
-void* sxc_context_realloc(SxcContext* context) {
+/* TODO
+void* sxc_context_realloc(SxcContext* context)
   * might need to store len before alloc'd data
   * could store 0 for data that takes up the entire chunk (i.e. chunk was alloc'd just for that data)
-}
 
-void sxc_context_free()*/
+void sxc_context_free()
+*/
 
 
 void* sxc_error(SxcContext* context, const char* message_format, ...) {
@@ -146,21 +147,93 @@ void* sxc_error(SxcContext* context, const char* message_format, ...) {
 }
 
 
-int sxc_arg(SxcContext* context, int index, SxcDataType type, SXC_DATA_DEST) {
-  va_list varg;
-  int retval;
-  SxcValue value;
+void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value) {
+  /* NOTE we assume the primary use case is to extract values from the scripting
+      environment, so expected types are written to inform scripters.  On the
+      other hand, if the actual type is a C type (i.e. sxc_cXXXX) it isn't
+      coming from the scripting environment, so we tell the programmer exactly
+      what he's dealing with. */
+  const char* expected_types[] = {
+      /* sxc_null */      "null",
+      /* sxc_bool */      "a boolean",
+      /* sxc_int */       "an int",
+      /* sxc_double */    "a double",
+      /* sxc_string */    "a string",
+      /* sxc_map */       "a map",
+      /* sxc_func */      "a function",
+      /* sxc_cstring */   "a string",
+      /* sxc_cpointer */  "a reference to a C struct",
+      /* sxc_cfunc */     "a C function",
+      /* sxc_cchars */    "a string",
+      /* sxc_cbools */    "a list of booleans",
+      /* sxc_cints */     "a list of ints",
+      /* sxc_cdoubles */  "a list of doubles",
+      /* sxc_cstrings */  "a list of strings"
+    };
+  const char* actual_types[] = {
+      /* sxc_null */      "null",
+      /* sxc_bool */      "a boolean",
+      /* sxc_int */       "an int",
+      /* sxc_double */    "a double",
+      /* sxc_string */    "a string",
+      /* sxc_map */       "a map",
+      /* sxc_func */      "a function",
+      /* sxc_cstring */   "a C string",
+      /* sxc_cpointer */  "a C pointer",
+      /* sxc_cfunc */     "a C function",
+      /* sxc_cchars */    "an array of chars",
+      /* sxc_cbools */    "an array of booleans",
+      /* sxc_cints */     "an array of ints",
+      /* sxc_cdoubles */  "an array of doubles",
+      /* sxc_cstrings */  "an array of strings"
+    };
 
-  if (index >= context->argcount) {
-    return SXC_FAILURE;
+  if (expected_type == sxc_null) {
+    sxc_error(context, "Can not extract %s because destination type "
+        "is sxc_null.", value_name);
   }
 
-  value.context = context;
-  (context->binding->get_arg)(context, index, &value);
+  else if (expected_type >= (sizeof(expected_types) / sizeof(expected_types[0]))) {
+    sxc_error(context, "Can not extract %s because destination type "
+        "(%d) is unrecognized.", value_name, expected_type);
+  }
 
-  va_start(varg, type);
-  retval = sxc_value_getv(&value, type, varg);
-  va_end(varg);
+  else {
+    sxc_error(context, "Expected %s to be %s (or compatible).  Actual value was %s.",
+        value_name,
+        expected_types[expected_type],
+        actual_value->type >= (sizeof(actual_types) / sizeof(actual_types[0]))
+          ? "of unknown type"
+          : actual_types[actual_value->type]);
+    /* TODO turn value to string (if possible) and truncate (with ellipsis) if
+        string is too long */
+  }
+}
+
+
+int sxc_arg(SxcContext* context, int index, int is_required, SxcDataType type, SXC_DATA_DEST) {
+  va_list varg;
+  int retval = SXC_FAILURE;
+  SxcValue value;
+
+  const char* value_name_format = "argument %d";
+  char* value_name;
+
+  if (index < context->argcount) {
+    value.context = context;
+    (context->binding->get_arg)(context, index, &value);
+
+    va_start(varg, type);
+    retval = sxc_value_getv(&value, type, varg);
+    va_end(varg);
+  }
+
+  if (is_required && retval != SXC_SUCCESS) {
+    value_name = sxc_alloc(context, sizeof(char) * (strlen(value_name_format) + 20 + 1));
+    sprintf(value_name, value_name_format, index + 1 /* start counting at 1 */);
+
+    sxc_typeerror(context, value_name, type, &value);
+  }
   return retval;
 }
 
