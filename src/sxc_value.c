@@ -293,6 +293,10 @@ static int to_cpointer(SxcValue* value, void** dest) {
       return SXC_SUCCESS;
 
     case sxc_string:
+      if (value->data.string->length != sizeof(void*)) {
+        return SXC_FAILURE;
+      }
+
       /* TODO? is this portable? */
       memcpy(dest, value->data.string->data, sizeof(void*));
       return SXC_SUCCESS;
