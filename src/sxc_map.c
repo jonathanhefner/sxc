@@ -129,28 +129,25 @@ int sxc_map_length(SxcMap* map) {
 
 
 void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
-  void* next_state;
-
   /* eliminate a potential source of errors */
   return_key->context = map->context;
   return_value->context = map->context;
 
   /* skip over keys that are not integers or strings, and return NULL when
       there's nothing left to iterate over */
-  while ((next_state = (map->binding->iter)(map, state, return_key, return_value))) {
+  while ((state = (map->binding->iter)(map, state, return_key, return_value))) {
     switch (return_key->type) {
       case sxc_int:
       case sxc_string:
-        return next_state;
+        return state;
 
       /* handle when the scripting language has only a double numeric type and
           the binding doesn't convert to int when appropriate */
       case sxc_double:
         if (return_key->data.adouble == (double)(int)(return_key->data.adouble)) {
-          return_key->data.aint = (int)(return_key->data.adouble);
-          return next_state;
+          sxc_value_set(return_key, sxc_int, (int)(return_key->data.adouble));
+          return state;
         }
-
       default:
         break;
     }
