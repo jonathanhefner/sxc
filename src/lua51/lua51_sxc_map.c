@@ -80,36 +80,35 @@ int map_length(SxcMap* map) {
     index into the stack */
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
-  int prev_index = PTR2INT(state);
 
-  if (prev_index == 0) {
+  if (state == NULL) {
     lua_pushnil(L);
   } else {
-    lua_pushvalue(L, prev_index);
+    lua_pushvalue(L, PTR2INT(state));
   }
 
-  /* skip over keys that are not integers or strings, and return NULL when
-      there's nothing left to iterate over */
-  do {
-    if (!lua_next(L, *(int*)map->underlying)) {
-      return NULL;
-    }
-
+  /* even though sxc already skips non-integer/strings keys, we pre-skip here
+      so we don't have to leave invalid values on the stack */
+  while (lua_next(L, *(int*)map->underlying)) {
     get_value(map->context, -2, return_key);
 
-    if (return_key->type == sxc_int || return_key->type == sxc_string) {
-      /* adjust list keys to 0-based indexing */
-      if (return_key->type == sxc_int && map->is_list) {
-        return_key->data.aint -= 1;
-      }
+    switch (return_key->type) {
+      case sxc_int:
+        /* adjust list keys to 0-based indexing */
+        if (map->is_list) {
+          return_key->data.aint -= 1;
+        }
+      case sxc_string:
+        get_value(map->context, -1, return_value);
+        return INT2PTR(lua_gettop(L) - 1);
 
-      get_value(map->context, -1, return_value);
-
-      return INT2PTR(lua_gettop(L) - 1);
+      default:
+        lua_pop(L, 1);
+        break;
     }
+  }
 
-    lua_pop(L, 1);
-  } while (1);
+  return NULL;
 }
 
 
