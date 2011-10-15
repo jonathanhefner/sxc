@@ -81,15 +81,19 @@ int map_length(SxcMap* map) {
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
+printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
+              *(int*)map->underlying, PTR2INT(state), lua_typename(L, lua_type(L, PTR2INT(state))));
+  luaL_checkstack(L, 2 + 2, "");
+
   if (state == NULL) {
     lua_pushnil(L);
-  } else {
+  } else if (PTR2INT(state) < lua_gettop(L)) {
     lua_pushvalue(L, PTR2INT(state));
   }
 
-  /* even though sxc already skips non-integer/strings keys, we pre-skip here
-      so we don't have to leave invalid values on the stack */
-  while (lua_next(L, *(int*)map->underlying)) {
+  /* even though sxc already skips non-integer/strings keys, we null out invalid
+      pairs so we don't have to leave unused values on the stack */
+  if (lua_next(L, *(int*)map->underlying)) {
     get_value(map->context, -2, return_key);
 
     switch (return_key->type) {
@@ -100,11 +104,15 @@ static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* 
         }
       case sxc_string:
         get_value(map->context, -1, return_value);
+printf("leaving map_iter with new state:%d\n", lua_gettop(L) - 1);
         return INT2PTR(lua_gettop(L) - 1);
 
       default:
+        sxc_value_set(return_key, sxc_null);
+        sxc_value_set(return_value, sxc_null);
         lua_pop(L, 1);
-        break;
+printf("leaving map_iter nulled with new state:%d\n", lua_gettop(L));
+        return INT2PTR(lua_gettop(L));
     }
   }
 
