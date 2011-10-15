@@ -24,9 +24,7 @@ printf("done pushing arg %d\n", i);
 printf("done calling func\n");
 
   /* get return value */
-  get_value(func->context, -1, return_value);
-  /* NOTE the value stays on the lua stack (i.e. is not popped) so that
-      return_value's underlying stack index is valid */
+  pop_value(func->context, return_value);
 printf("done get_value\n");
 }
 

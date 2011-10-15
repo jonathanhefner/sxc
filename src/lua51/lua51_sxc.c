@@ -178,6 +178,24 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
 }
 
 
+void pop_value(SxcContext* context, SxcValue* return_value) {
+  get_value(context, -1, return_value);
+
+  /* pop values that don't need to remain on the stack to use (i.e. primitives) */
+  switch (return_value->type) {
+    case sxc_null:
+    case sxc_bool:
+    case sxc_int:
+    case sxc_double:
+      lua_pop((lua_State*)context->underlying, 1);
+      break;
+
+    default:
+      break;
+  }
+}
+
+
 #include <stdio.h>
 void push_value(SxcContext* context, SxcValue* value) {
   lua_State* L = (lua_State*)context->underlying;

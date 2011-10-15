@@ -15,7 +15,7 @@ static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
   lua_pushinteger(L, (lua_Integer)key);
   luaL_checkstack(L, 1 + 2, "");
   lua_gettable(L, *(int*)map->underlying);
-  get_value(map->context, -1, return_value);
+  pop_value(map->context, return_value);
 }
 
 
@@ -53,7 +53,7 @@ static void map_strget(SxcMap* map, const char* key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
   luaL_checkstack(L, 1 + 2, "");
   lua_getfield(L, *(int*)map->underlying, key);
-  get_value(map->context, -1, return_value);
+  pop_value(map->context, return_value);
 }
 
 
@@ -91,10 +91,9 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
     lua_pushvalue(L, PTR2INT(state));
   }
 
-  /* even though sxc already skips non-integer/strings keys, we null out invalid
-      pairs so we don't have to leave unused values on the stack */
   if (lua_next(L, *(int*)map->underlying)) {
     get_value(map->context, -2, return_key);
+    state = INT2PTR(lua_gettop(L) - 2 + 1);
 
     switch (return_key->type) {
       case sxc_int:
@@ -103,17 +102,21 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
           return_key->data.aint -= 1;
         }
       case sxc_string:
-        get_value(map->context, -1, return_value);
-printf("leaving map_iter with new state:%d\n", lua_gettop(L) - 1);
-        return INT2PTR(lua_gettop(L) - 1);
+        pop_value(map->context, return_value);
+printf("leaving map_iter with new state:%d\n", PTR2INT(state));
+        break;
 
+      /* even though sxc already skips non-integer/strings keys, we null out
+          invalid pairs so we don't have to leave unused values on the stack */
       default:
         sxc_value_set(return_key, sxc_null);
         sxc_value_set(return_value, sxc_null);
         lua_pop(L, 1);
-printf("leaving map_iter nulled with new state:%d\n", lua_gettop(L));
-        return INT2PTR(lua_gettop(L));
+printf("leaving map_iter nulled with new state:%d\n", PTR2INT(state));
+        break;
     }
+
+    return state;
   }
 
   return NULL;

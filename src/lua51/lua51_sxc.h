@@ -19,6 +19,7 @@ SxcString* get_string(SxcContext* context, int index);
 SxcMap* get_map(SxcContext* context, int index, int is_list);
 SxcFunc* get_func(SxcContext* context, int index);
 void get_value(SxcContext* context, int index, SxcValue* return_value);
+void pop_value(SxcContext* context, SxcValue* return_value);
 void push_value(SxcContext* context, SxcValue* value);
 
 
