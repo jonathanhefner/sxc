@@ -372,7 +372,11 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
   }
 
 #define MAP2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                             \
-  *dest_len = sxc_map_length(value->data.map);                            \
+  tmp_value.data.aint = sxc_map_length(value->data.map);                  \
+  if (tmp_value.data.aint < 0) {                                          \
+    return SXC_FAILURE;                                                   \
+  }                                                                       \
+  *dest_len = tmp_value.data.aint;                                        \
   *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
   tmp_value.context = value->context;                                     \
   for (i = 0; i < *dest_len; i += 1) {                                    \
@@ -548,7 +552,12 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
       #undef ARRAY2CSTRINGS
 
     case sxc_map:
-      *dest_len = sxc_map_length(value->data.map);
+      tmp_value.data.aint = sxc_map_length(value->data.map);
+      if (tmp_value.data.aint < 0) {
+        return SXC_FAILURE;
+      }
+
+      *dest_len = tmp_value.data.aint;
       *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));
       tmp_value.context = value->context;
       for (i = 0; i < *dest_len; i += 1) {

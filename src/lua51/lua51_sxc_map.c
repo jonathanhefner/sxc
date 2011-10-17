@@ -32,12 +32,6 @@ static void map_strget(SxcMap* map, const char* key, SxcValue* return_value) {
 
 static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
   lua_State* L = (lua_State*)map->context->underlying;
-
-  /* help deal with 0-based vs 1-based indexing */
-  if (map->is_list == TABLE_MAYBE_LIST) {
-    map->is_list = TABLE_NOT_LIST;
-  }
-
   push_value(map->context, value);
   lua_setfield(L, PTR2INT(map->underlying), key);
 }

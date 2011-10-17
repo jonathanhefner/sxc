@@ -227,8 +227,6 @@ struct _SxcMap {
   SxcContext* context;
   SxcMapBinding* binding;
   void* underlying;
-
-  int is_list;
 };
 
 

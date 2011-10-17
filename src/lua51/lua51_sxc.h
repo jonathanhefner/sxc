@@ -15,9 +15,8 @@
 int l_libfunc_invoke(lua_State* L);
 
 int libfunc_invoke(SxcLibFunc func, lua_State* L, const int argcount);
-short int table_is_list(lua_State* L, int index);
 SxcString* get_string(SxcContext* context, int index);
-SxcMap* get_map(SxcContext* context, int index, int is_list);
+SxcMap* get_map(SxcContext* context, int index);
 SxcFunc* get_func(SxcContext* context, int index);
 void get_value(SxcContext* context, int index, SxcValue* return_value);
 void pop_value(SxcContext* context, SxcValue* return_value);

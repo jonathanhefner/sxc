@@ -24,8 +24,6 @@ int l_libfunc_invoke(lua_State* L) {
 }
 
 
-
-
 int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
@@ -46,45 +44,6 @@ int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
 }
 
 
-short int table_is_list(lua_State* L, int index) {
-  int type;
-
-printf("in table_is_list\n");
-
-  /* If t[0] is defined, we assume t is not a list */
-  lua_pushinteger(L, 0);
-  lua_gettable(L, index);
-  type = lua_type(L, -1);
-  lua_pop(L, 1);
-  if (type != LUA_TNIL) {
-    return TABLE_NOT_LIST;
-  }
-
-printf("done check t[0]\n");
-
-  /* AND if t[1] is defined, we assume t is a list. */
-  lua_pushinteger(L, 1);
-  lua_gettable(L, index);
-  type = lua_type(L, -1);
-  lua_pop(L, 1);
-  if (type != LUA_TNIL) {
-    return TABLE_IS_LIST;
-  }
-
-printf("done check t[1]\n");
-
-  /* We also say empty tables are probably lists (so that if the first keys
-      added are integer keys, they will be adjusted to 1-based indexing). */
-  lua_pushnil(L);
-  if (!lua_next(L, index)) {
-    return TABLE_MAYBE_LIST;
-  }
-  lua_pop(L, 2);
-
-printf("done check empty\n");
-
-  return TABLE_NOT_LIST;
-}
 
 
 SxcString* get_string(SxcContext* context, int index) {
@@ -105,7 +64,7 @@ SxcString* get_string(SxcContext* context, int index) {
 }
 
 
-SxcMap* get_map(SxcContext* context, int index, int is_list) {
+SxcMap* get_map(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
   SxcMap* m = sxc_alloc(context, sizeof(SxcMap));
 
@@ -116,7 +75,6 @@ SxcMap* get_map(SxcContext* context, int index, int is_list) {
   m->context = context;
   m->binding = &MAP_BINDING;
   m->underlying = INT2PTR(index);
-  m->is_list = is_list == TABLE_MAYBE_LIST ? table_is_list(L, index) : is_list;
   return m;
 }
 
@@ -164,7 +122,7 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
       return;
 
     case LUA_TTABLE:
-      sxc_value_set(return_value, sxc_map, get_map(context, index, TABLE_MAYBE_LIST));
+      sxc_value_set(return_value, sxc_map, get_map(context, index));
       return;
 
     case LUA_TFUNCTION:

@@ -207,7 +207,7 @@ static SxcMap* map_new(SxcContext* context, void* map_type) {
 
   if (map_type == MAPTYPE_HASH || map_type == MAPTYPE_LIST) {
     lua_newtable(L);
-    return get_map(context, -1, map_type == MAPTYPE_LIST ? TABLE_IS_LIST : TABLE_NOT_LIST);
+    return get_map(context, -1);
   } else {
     /* TODO actually invoke the ctor with some given args, instead of simply
         returning an un-initialized table with associated metatable */
@@ -220,7 +220,7 @@ static SxcMap* map_new(SxcContext* context, void* map_type) {
     lua_setmetatable(L, -4);
     lua_pop(L, 2);
 
-    return get_map(context, -1, TABLE_MAYBE_LIST);
+    return get_map(context, -1);
   }
 }
 

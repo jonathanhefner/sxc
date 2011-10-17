@@ -103,31 +103,43 @@ void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG
 
 
 int sxc_map_length(SxcMap* map) {
-  int length;
-
   void* iter = NULL;
-  SxcValue map_key;
-  SxcValue map_val;
-  int max_int_key = -1;
+  SxcValue key;
+  SxcValue val;
+  int key_count = 0;
+  int key_max = -1;
 
-  /* for convenience, bindings can return a length less than zero, and we will
-      iterate through the map to compute (max_int_key + 1) as the length */
-  /* NOTE this is obviously not very performant.  Bindings should only rely on
+  if (map->binding->length != NULL) {
+    return (map->binding->length)(map);
+  }
+
+  /* For bindings that don't provide a length() function, a length is computed
+      based on the max integer key of the map.  However, if the map contains any
+      data associated with string keys, or if the map is sparse (defined here as
+      null to non-null element ratio of 8:1 or greater), a negative length is
+      returned to indicate the map is a dictionary, rather than a list. */
+  /* NOTE This is obviously not very performant.  Bindings should only rely on
       this feature when the length is not truly known, e.g. a hashmap (possibly)
       representing a sparse vector */
-  if (map->binding->length == NULL) {
-    while ((iter = sxc_map_iter(map, iter, &map_key, &map_val))) {
-      if (map_key.type == sxc_int) {
-        max_int_key = map_key.data.aint > max_int_key ? map_key.data.aint : max_int_key;
+  else {
+    while ((iter = sxc_map_iter(map, iter, &key, &val))) {
+      /* TODO? account for stringified integer keys */
+      if (key.type == sxc_string && val.type != sxc_func) {
+        return -1;
+      }
+
+      if (key.type == sxc_int) {
+        key_count += 1;
+        key_max = key.data.aint > key_max ? key.data.aint : key_max;
       }
     }
 
-    length = max_int_key + 1;
-  } else {
-    length = (map->binding->length)(map);
-  }
+    if ((key_max - key_count) >= (8 * key_count)) {
+      return -1;
+    }
 
-  return length;
+    return key_max + 1;
+  }
 }
 
 
