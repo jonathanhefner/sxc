@@ -43,11 +43,6 @@ static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
 }
 
 
-int map_length(SxcMap* map) {
-  return -1; /* rely on sxc feature to compute max int key */
-}
-
-
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
@@ -92,5 +87,5 @@ printf("leaving map_iter nulled with new state:%d\n", PTR2INT(state));
 
 
 SxcMapBinding MAP_BINDING = {
-  map_intget, map_intset, map_strget, map_strset, map_length, map_iter
+  map_intget, map_intset, map_strget, map_strset, NULL, map_iter
 };

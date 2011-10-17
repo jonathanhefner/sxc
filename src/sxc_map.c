@@ -103,18 +103,19 @@ void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG
 
 
 int sxc_map_length(SxcMap* map) {
+  int length;
+
   void* iter = NULL;
   SxcValue map_key;
   SxcValue map_val;
   int max_int_key = -1;
-  int length = (map->binding->length)(map);
 
   /* for convenience, bindings can return a length less than zero, and we will
       iterate through the map to compute (max_int_key + 1) as the length */
   /* NOTE this is obviously not very performant.  Bindings should only rely on
       this feature when the length is not truly known, e.g. a hashmap (possibly)
       representing a sparse vector */
-  if (length < 0) {
+  if (map->binding->length == NULL) {
     while ((iter = sxc_map_iter(map, iter, &map_key, &map_val))) {
       if (map_key.type == sxc_int) {
         max_int_key = map_key.data.aint > max_int_key ? map_key.data.aint : max_int_key;
@@ -122,6 +123,8 @@ int sxc_map_length(SxcMap* map) {
     }
 
     length = max_int_key + 1;
+  } else {
+    length = (map->binding->length)(map);
   }
 
   return length;
