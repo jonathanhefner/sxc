@@ -87,10 +87,9 @@ printf("done check empty\n");
 }
 
 
-/* TODO convert `*(int*)(s->underlying) = index` to `s->underlying = INT2PTR(index)` */
 SxcString* get_string(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcString* s = sxc_alloc(context, sizeof(SxcString) + sizeof(int));
+  SxcString* s = sxc_alloc(context, sizeof(SxcString));
   size_t length;
 
   if (index < 0) {
@@ -98,8 +97,7 @@ SxcString* get_string(SxcContext* context, int index) {
   }
 
   s->context = context;
-  s->underlying = s + 1;
-  *(int*)(s->underlying) = index;
+  s->underlying = INT2PTR(index);
   s->data = (char*)lua_tolstring(L, index, &length);
   s->length = (int)length;
   s->is_terminated = TRUE;
@@ -109,7 +107,7 @@ SxcString* get_string(SxcContext* context, int index) {
 
 SxcMap* get_map(SxcContext* context, int index, int is_list) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcMap* m = sxc_alloc(context, sizeof(SxcMap) + sizeof(int));
+  SxcMap* m = sxc_alloc(context, sizeof(SxcMap));
 
   if (index < 0) {
     index += lua_gettop(L) + 1;
@@ -117,8 +115,7 @@ SxcMap* get_map(SxcContext* context, int index, int is_list) {
 
   m->context = context;
   m->binding = &MAP_BINDING;
-  m->underlying = m + 1;
-  *(int*)(m->underlying) = index;
+  m->underlying = INT2PTR(index);
   m->is_list = is_list == TABLE_MAYBE_LIST ? table_is_list(L, index) : is_list;
   return m;
 }
@@ -126,7 +123,7 @@ SxcMap* get_map(SxcContext* context, int index, int is_list) {
 
 SxcFunc* get_func(SxcContext* context, int index) {
   lua_State* L = (lua_State*)context->underlying;
-  SxcFunc* f = sxc_alloc(context, sizeof(SxcFunc) + sizeof(int));
+  SxcFunc* f = sxc_alloc(context, sizeof(SxcFunc));
 
   if (index < 0) {
     index += lua_gettop(L) + 1;
@@ -134,8 +131,7 @@ SxcFunc* get_func(SxcContext* context, int index) {
 
   f->context = context;
   f->binding = &FUNC_BINDING;
-  f->underlying = f + 1;
-  *(int*)(f->underlying) = index;
+  f->underlying = INT2PTR(index);
   return f;
 }
 
@@ -221,15 +217,15 @@ printf("in push_value, type:%d\n", value->type);
       return;
 
     case sxc_string:
-      lua_pushvalue(L, *(int*)(value->data.string->underlying));
+      lua_pushvalue(L, PTR2INT(value->data.string->underlying));
       return;
 
     case sxc_map:
-      lua_pushvalue(L, *(int*)(value->data.map->underlying));
+      lua_pushvalue(L, PTR2INT(value->data.map->underlying));
       return;
 
     case sxc_func:
-      lua_pushvalue(L, *(int*)(value->data.func->underlying));
+      lua_pushvalue(L, PTR2INT(value->data.func->underlying));
       return;
   }
 }

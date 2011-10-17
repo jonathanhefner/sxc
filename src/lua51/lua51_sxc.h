@@ -7,6 +7,7 @@
 #define TABLE_NOT_LIST (0)
 #define TABLE_MAYBE_LIST (-1)
 
+/* NOTE we assume that sizeof(void*) >= sizeof(int) */
 #define INT2PTR(x) ((void*)(long int)(x))
 #define PTR2INT(x) ((int)(long int)(x))
 

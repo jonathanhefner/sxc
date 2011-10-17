@@ -10,7 +10,7 @@ printf("in lua function_invoke\n");
   luaL_checkstack(L, 1 + argcount, "");
 
   /* push function */
-  lua_pushvalue(L, *(int*)(func->underlying));
+  lua_pushvalue(L, PTR2INT(func->underlying));
 printf("done pushing function\n");
 
   /* push args */

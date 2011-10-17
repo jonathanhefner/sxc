@@ -7,7 +7,7 @@ static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
 
   lua_pushinteger(L, (lua_Integer)key);
   luaL_checkstack(L, 1 + 2, "");
-  lua_gettable(L, *(int*)map->underlying);
+  lua_gettable(L, PTR2INT(map->underlying));
   pop_value(map->context, return_value);
 }
 
@@ -18,14 +18,14 @@ static void map_intset(SxcMap* map, int key, SxcValue* value) {
 
   lua_pushinteger(L, (lua_Integer)key);
   push_value(map->context, value);
-  lua_settable(L, *(int*)map->underlying);
+  lua_settable(L, PTR2INT(map->underlying));
 }
 
 
 static void map_strget(SxcMap* map, const char* key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
   luaL_checkstack(L, 1 + 2, "");
-  lua_getfield(L, *(int*)map->underlying, key);
+  lua_getfield(L, PTR2INT(map->underlying), key);
   pop_value(map->context, return_value);
 }
 
@@ -39,7 +39,7 @@ static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
   }
 
   push_value(map->context, value);
-  lua_setfield(L, *(int*)map->underlying, key);
+  lua_setfield(L, PTR2INT(map->underlying), key);
 }
 
 
@@ -48,14 +48,11 @@ int map_length(SxcMap* map) {
 }
 
 
-/* NOTE we assume that sizeof(void*) >= sizeof(int) and use the state pointer
-    as a value directly, rather than allocate a structure to hold the current
-    index into the stack */
 static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
 
 printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
-              *(int*)map->underlying, PTR2INT(state), lua_typename(L, lua_type(L, PTR2INT(state))));
+              PTR2INT(map->underlying), PTR2INT(state), lua_typename(L, lua_type(L, PTR2INT(state))));
   luaL_checkstack(L, 2 + 2, "");
 
   if (state == NULL) {
@@ -64,7 +61,7 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
     lua_pushvalue(L, PTR2INT(state));
   }
 
-  if (lua_next(L, *(int*)map->underlying)) {
+  if (lua_next(L, PTR2INT(map->underlying))) {
     get_value(map->context, -2, return_key);
     state = INT2PTR(lua_gettop(L) - 2 + 1);
 
