@@ -3,14 +3,7 @@
 
 static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
   lua_State* L = (lua_State*)map->context->underlying;
-
-  /* deal with 0-based vs 1-based indexing */
-  if (map->is_list == TABLE_MAYBE_LIST) {
-    map->is_list = table_is_list(L, *(int*)map->underlying);
-  }
-  if (map->is_list) {
-    key += 1;
-  }
+  key += 1; /* adjust for 1-based indexing */
 
   lua_pushinteger(L, (lua_Integer)key);
   luaL_checkstack(L, 1 + 2, "");
@@ -21,27 +14,7 @@ static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
 
 static void map_intset(SxcMap* map, int key, SxcValue* value) {
   lua_State* L = (lua_State*)map->context->underlying;
-
-  /* deal with 0-based vs 1-based indexing */
-  /* WARNING this logic is not fault-proof.  For example, if a table is supposed
-      to be a list with nil as its first and only element, and a library's first
-      interaction with the table is to set its second element, the table will
-      still be marked as a list, but the second element will become the first.
-      This is because a first and only element of nil is no different than being
-      empty and because "empty" tables can be ambiguously interpreted as either
-      lists or hashmaps. */
-  /* TODO? add some global constant (e.g. SXC_NIL) to the lua environment that
-      is not nil, but is returned from sxc functions as nil, so that lists with
-      nil first elements can effectively be created */
-  if (map->is_list == TABLE_MAYBE_LIST) {
-    map->is_list = table_is_list(L, *(int*)map->underlying);
-    if (map->is_list == TABLE_MAYBE_LIST) {
-      map->is_list = key == 0 ? TABLE_IS_LIST : TABLE_NOT_LIST;
-    }
-  }
-  if (map->is_list) {
-    key += 1;
-  }
+  key += 1; /* adjust for 1-based indexing */
 
   lua_pushinteger(L, (lua_Integer)key);
   push_value(map->context, value);
@@ -98,9 +71,7 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
     switch (return_key->type) {
       case sxc_int:
         /* adjust list keys to 0-based indexing */
-        if (map->is_list) {
-          return_key->data.aint -= 1;
-        }
+        return_key->data.aint -= 1;
       case sxc_string:
         pop_value(map->context, return_value);
 printf("leaving map_iter with new state:%d\n", PTR2INT(state));
