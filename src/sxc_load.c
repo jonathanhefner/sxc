@@ -130,7 +130,7 @@ void sxc_load(SxcContext* context) {
 printf("in sxc_load, lib_name:%p lib_name_len:%p\n", &lib_name, &lib_name_len);
 
   /* extract lib_name from args */
-  sxc_arg(context, 0, TRUE, sxc_cchars, &lib_name, &lib_name_len);
+  sxc_arg(context, 0, true, sxc_cchars, &lib_name, &lib_name_len);
 
 printf("done extract lib_name from args, name:%s, len:%d\n", lib_name, lib_name_len);
 

@@ -24,20 +24,20 @@
 /* TODO? test for NULL even when type isn't sxc_null */
 
 
-static int to_double(SxcValue* value, double* dest) {
+static int to_cdouble(SxcValue* value, double* dest) {
   char decimal_format[32] = "%lf";
 
   switch (value->type) {
-    case sxc_double:
-      *dest = value->data.adouble;
+    case sxc_cdouble:
+      *dest = value->data.cdouble;
       return SXC_SUCCESS;
 
-    case sxc_bool:
-      *dest = value->data.abool ? 1.0 : 0.0;
+    case sxc_cbool:
+      *dest = value->data.cbool ? 1.0 : 0.0;
       return SXC_SUCCESS;
 
-    case sxc_int:
-      *dest = (double)(value->data.aint);
+    case sxc_cint:
+      *dest = (double)(value->data.cint);
       return SXC_SUCCESS;
 
     case sxc_string:
@@ -59,26 +59,26 @@ static int to_double(SxcValue* value, double* dest) {
 }
 
 
-static int to_bool(SxcValue* value, char* dest) {
+static int to_cbool(SxcValue* value, bool* dest) {
   double parsed_string;
 
   switch (value->type) {
-    case sxc_bool:
-      *dest = value->data.abool;
+    case sxc_cbool:
+      *dest = value->data.cbool;
       return SXC_SUCCESS;
 
-    case sxc_int:
-      *dest = (value->data.aint != 0);
+    case sxc_cint:
+      *dest = (value->data.cint != 0);
       return SXC_SUCCESS;
 
-    case sxc_double:
-      *dest = (value->data.adouble != 0.0);
+    case sxc_cdouble:
+      *dest = (value->data.cdouble != 0.0);
       return SXC_SUCCESS;
 
     case sxc_string:
     case sxc_cstring:
       /* TODO also parse "true" and "false" (case sensitive? trim whitespace?) */
-      if (to_double(value, &parsed_string) == SXC_SUCCESS) {
+      if (to_cdouble(value, &parsed_string) == SXC_SUCCESS) {
         *dest = (parsed_string != 0.0);
         return SXC_SUCCESS;
       } else {
@@ -91,25 +91,25 @@ static int to_bool(SxcValue* value, char* dest) {
 }
 
 
-static int to_int(SxcValue* value, int* dest) {
+static int to_cint(SxcValue* value, int* dest) {
   double parsed_string;
 
   switch (value->type) {
-    case sxc_int:
-      *dest = value->data.aint;
+    case sxc_cint:
+      *dest = value->data.cint;
       return SXC_SUCCESS;
 
-    case sxc_bool:
-      *dest = value->data.abool;
+    case sxc_cbool:
+      *dest = value->data.cbool;
       return SXC_SUCCESS;
 
-    case sxc_double:
-      *dest = (int)(value->data.adouble);
+    case sxc_cdouble:
+      *dest = (int)(value->data.cdouble);
       return SXC_SUCCESS;
 
     case sxc_string:
     case sxc_cstring:
-      if (to_double(value, &parsed_string) == SXC_SUCCESS) {
+      if (to_cdouble(value, &parsed_string) == SXC_SUCCESS) {
         *dest = (int)parsed_string;
         return SXC_SUCCESS;
       } else {
@@ -128,26 +128,26 @@ static int to_cstring(SxcValue* value, char** dest) {
       *dest = value->data.cstring;
       return SXC_SUCCESS;
 
-    case sxc_bool:
-      *dest = value->data.abool ? "1" : "0";
+    case sxc_cbool:
+      *dest = value->data.cbool ? "1" : "0";
       return SXC_SUCCESS;
 
-    case sxc_int:
+    case sxc_cint:
       /* format the number
        *    NOTE: max digits in a 32-bit signed int is 10 (not including sign)
        *    NOTE: max digits in a 64-bit signed int is 19 (not including sign) */
       *dest = sxc_alloc(value->context, (sizeof(int) <= 4 ? 11 : 20) + 1);
-      sprintf(*dest, "%d", value->data.aint);
+      sprintf(*dest, "%d", value->data.cint);
       return SXC_SUCCESS;
 
-    case sxc_double:
+    case sxc_cdouble:
       /* TODO? return literal strings for NaN, +Inf and -Inf */
       /* format the number into no more than 20 characters (max digits in a 64-bit signed int is 19) */
       *dest = sxc_alloc(value->context, 20 + 1);
 
       /* try to format as long integer first, if there is no mantissa and the integer portion fits */
-      if (value->data.adouble == (double)(long int)(value->data.adouble) && sizeof(long int) <= 8) {
-        sprintf(*dest, "%ld", (long int)(value->data.adouble));
+      if (value->data.cdouble == (double)(long int)(value->data.cdouble) && sizeof(long int) <= 8) {
+        sprintf(*dest, "%ld", (long int)(value->data.cdouble));
       }
       /* otherwise format as a floating point in scientific notation:
        *    |<-------20------->|
@@ -155,7 +155,7 @@ static int to_cstring(SxcValue* value, char** dest) {
        *       |<---12--->|
        */
       else {
-        sprintf(*dest, "%1.12e", value->data.adouble);
+        sprintf(*dest, "%1.12e", value->data.cdouble);
       }
       return SXC_SUCCESS;
 
@@ -246,15 +246,15 @@ static int to_map(SxcValue* value, SxcMap** dest) {
         }
 
     case sxc_cbools:
-      ARRAY2MAP(cbools, sxc_bool, abool)
+      ARRAY2MAP(cbools, sxc_cbool, cbool)
       return SXC_SUCCESS;
 
     case sxc_cints:
-      ARRAY2MAP(cints, sxc_int, aint)
+      ARRAY2MAP(cints, sxc_cint, cint)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      ARRAY2MAP(cdoubles, sxc_double, adouble)
+      ARRAY2MAP(cdoubles, sxc_cdouble, cdouble)
       return SXC_SUCCESS;
 
     case sxc_cstrings:
@@ -372,11 +372,11 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
   }
 
 #define MAP2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                             \
-  tmp_value.data.aint = sxc_map_length(value->data.map);                  \
-  if (tmp_value.data.aint < 0) {                                          \
+  tmp_value.data.cint = sxc_map_length(value->data.map);                  \
+  if (tmp_value.data.cint < 0) {                                          \
     return SXC_FAILURE;                                                   \
   }                                                                       \
-  *dest_len = tmp_value.data.aint;                                        \
+  *dest_len = tmp_value.data.cint;                                        \
   *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
   tmp_value.context = value->context;                                     \
   for (i = 0; i < *dest_len; i += 1) {                                    \
@@ -414,11 +414,11 @@ static int to_cbools(SxcValue* value, char** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(char, to_bool)
+      CSTRINGS2ARRAY(char, to_cbool)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(char, to_bool)
+      MAP2ARRAY(char, to_cbool)
       return SXC_SUCCESS;
 
     default:
@@ -454,11 +454,11 @@ static int to_cints(SxcValue* value, int** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(int, to_int)
+      CSTRINGS2ARRAY(int, to_cint)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(int, to_int)
+      MAP2ARRAY(int, to_cint)
       return SXC_SUCCESS;
 
     default:
@@ -494,11 +494,11 @@ static int to_cdoubles(SxcValue* value, double** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(double, to_double)
+      CSTRINGS2ARRAY(double, to_cdouble)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(double, to_double)
+      MAP2ARRAY(double, to_cdouble)
       return SXC_SUCCESS;
 
     default:
@@ -537,27 +537,27 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
         }
 
     case sxc_cbools:
-      ARRAY2CSTRINGS(cbools, sxc_bool, abool)
+      ARRAY2CSTRINGS(cbools, sxc_cbool, cbool)
       return SXC_SUCCESS;
 
     case sxc_cints:
-      ARRAY2CSTRINGS(cints, sxc_int, aint)
+      ARRAY2CSTRINGS(cints, sxc_cint, cint)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      ARRAY2CSTRINGS(cdoubles, sxc_double, adouble)
+      ARRAY2CSTRINGS(cdoubles, sxc_cdouble, cdouble)
       return SXC_SUCCESS;
 
       /* cleanup */
       #undef ARRAY2CSTRINGS
 
     case sxc_map:
-      tmp_value.data.aint = sxc_map_length(value->data.map);
-      if (tmp_value.data.aint < 0) {
+      tmp_value.data.cint = sxc_map_length(value->data.map);
+      if (tmp_value.data.cint < 0) {
         return SXC_FAILURE;
       }
 
-      *dest_len = tmp_value.data.aint;
+      *dest_len = tmp_value.data.cint;
       *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));
       tmp_value.context = value->context;
       for (i = 0; i < *dest_len; i += 1) {
@@ -591,12 +591,12 @@ int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg) {
   }
 
   switch (type) {
-    case sxc_bool:
-      return to_bool(value, (char*)dest);
-    case sxc_int:
-      return to_int(value, (int*)dest);
-    case sxc_double:
-      return to_double(value, (double*)dest);
+    case sxc_cbool:
+      return to_cbool(value, (bool*)dest);
+    case sxc_cint:
+      return to_cint(value, (int*)dest);
+    case sxc_cdouble:
+      return to_cdouble(value, (double*)dest);
     case sxc_string:
       return to_string(value, (SxcString**)dest);
     case sxc_map:
@@ -652,14 +652,14 @@ void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg) {
 
   if (type != sxc_null) {
     switch (type) {
-      case sxc_bool:
+      case sxc_cbool:
         /* NOTE char var args are always promoted to int (see http://c-faq.com/varargs/float.html) */
-        value->data.abool = (char)va_arg(varg, int); /* TODO? coerce to 0 or 1 */
-      case sxc_int:
-        value->data.aint = va_arg(varg, int);
+        value->data.cbool = (char)va_arg(varg, int); /* TODO? coerce to 0 or 1 */
+      case sxc_cint:
+        value->data.cint = va_arg(varg, int);
         break;
-      case sxc_double:
-        value->data.adouble = va_arg(varg, double);
+      case sxc_cdouble:
+        value->data.cdouble = va_arg(varg, double);
         break;
 
       case sxc_string:

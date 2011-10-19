@@ -26,7 +26,7 @@ void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialz
 }
 
 
-int sxc_map_intget(SxcMap* map, int key, int is_required, SxcDataType type, SXC_DATA_DEST) {
+int sxc_map_intget(SxcMap* map, int key, bool is_required, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval;
   SxcValue value;
@@ -64,7 +64,7 @@ void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG) {
 }
 
 
-int sxc_map_strget(SxcMap* map, const char* key, int is_required, SxcDataType type, SXC_DATA_DEST) {
+int sxc_map_strget(SxcMap* map, const char* key, bool is_required, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval;
   SxcValue value;
@@ -128,9 +128,9 @@ int sxc_map_length(SxcMap* map) {
         return -1;
       }
 
-      if (key.type == sxc_int) {
+      if (key.type == sxc_cint) {
         key_count += 1;
-        key_max = key.data.aint > key_max ? key.data.aint : key_max;
+        key_max = key.data.cint > key_max ? key.data.cint : key_max;
       }
     }
 
@@ -152,15 +152,15 @@ void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* ret
       there's nothing left to iterate over */
   while ((state = (map->binding->iter)(map, state, return_key, return_value))) {
     switch (return_key->type) {
-      case sxc_int:
+      case sxc_cint:
       case sxc_string:
         return state;
 
       /* handle when the scripting language has only a double numeric type and
           the binding doesn't convert to int when appropriate */
-      case sxc_double:
-        if (return_key->data.adouble == (double)(int)(return_key->data.adouble)) {
-          sxc_value_set(return_key, sxc_int, (int)(return_key->data.adouble));
+      case sxc_cdouble:
+        if (return_key->data.cdouble == (double)(int)(return_key->data.cdouble)) {
+          sxc_value_set(return_key, sxc_cint, (int)(return_key->data.cdouble));
           return state;
         }
       default:

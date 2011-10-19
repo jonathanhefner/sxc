@@ -59,7 +59,7 @@ SxcString* get_string(SxcContext* context, int index) {
   s->underlying = INT2PTR(index);
   s->data = (char*)lua_tolstring(L, index, &length);
   s->length = (int)length;
-  s->is_terminated = TRUE;
+  s->is_terminated = true;
   return s;
 }
 
@@ -105,15 +105,15 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
       return;
 
     case LUA_TBOOLEAN:
-      sxc_value_set(return_value, sxc_bool, (char)lua_toboolean(L, index));
+      sxc_value_set(return_value, sxc_cbool, (bool)lua_toboolean(L, index));
       return;
 
     case LUA_TNUMBER:
       number = (double)lua_tonumber(L, index);
       if (number == (double)(int)number) {
-        sxc_value_set(return_value, sxc_int, (int)number);
+        sxc_value_set(return_value, sxc_cint, (int)number);
       } else {
-        sxc_value_set(return_value, sxc_double, number);
+        sxc_value_set(return_value, sxc_cdouble, number);
       }
       return;
 
@@ -138,9 +138,9 @@ void pop_value(SxcContext* context, SxcValue* return_value) {
   /* pop values that don't need to remain on the stack to use (i.e. primitives) */
   switch (return_value->type) {
     case sxc_null:
-    case sxc_bool:
-    case sxc_int:
-    case sxc_double:
+    case sxc_cbool:
+    case sxc_cint:
+    case sxc_cdouble:
       lua_pop((lua_State*)context->underlying, 1);
       break;
 
@@ -162,16 +162,16 @@ printf("in push_value, type:%d\n", value->type);
       lua_pushnil(L);
       return;
 
-    case sxc_bool:
-      lua_pushboolean(L, value->data.abool);
+    case sxc_cbool:
+      lua_pushboolean(L, value->data.cbool);
       return;
 
-    case sxc_int:
-      lua_pushinteger(L, (lua_Integer)value->data.aint);
+    case sxc_cint:
+      lua_pushinteger(L, (lua_Integer)value->data.cint);
       return;
 
-    case sxc_double:
-      lua_pushnumber(L, (lua_Number)value->data.adouble);
+    case sxc_cdouble:
+      lua_pushnumber(L, (lua_Number)value->data.cdouble);
       return;
 
     case sxc_string:

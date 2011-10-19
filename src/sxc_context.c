@@ -138,7 +138,7 @@ void* sxc_error(SxcContext* context, const char* message_format, ...) {
 
   /* Step 2: Save formatted error message */
   sxc_value_set(&context->return_value, sxc_cchars, buffer, actual_len);
-  context->has_error = TRUE;
+  context->has_error = true;
 
   /* Step 3: Long jump back to C library's invocation point */
   LONGJMP(*(JMP_BUF*)(context->_jmpbuf), 1);
@@ -211,7 +211,7 @@ void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_t
 }
 
 
-int sxc_arg(SxcContext* context, int index, int is_required, SxcDataType type, SXC_DATA_DEST) {
+int sxc_arg(SxcContext* context, int index, bool is_required, SxcDataType type, SXC_DATA_DEST) {
   va_list varg;
   int retval = SXC_FAILURE;
   SxcValue value;

@@ -55,9 +55,9 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
     state = INT2PTR(lua_gettop(L) - 2 + 1);
 
     switch (return_key->type) {
-      case sxc_int:
+      case sxc_cint:
         /* adjust list keys to 0-based indexing */
-        return_key->data.aint -= 1;
+        return_key->data.cint -= 1;
       case sxc_string:
         pop_value(map->context, return_value);
 printf("leaving map_iter with new state:%d\n", PTR2INT(state));

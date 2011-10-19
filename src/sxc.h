@@ -1,13 +1,13 @@
-#ifndef NULL
-  #define NULL ((void*)0)
-#endif
+/***** Some Prerequisites *****/
 
-#ifndef FALSE
-  #define FALSE (0)
-#endif
+#include <stddef.h>
 
-#ifndef TRUE
-  #define TRUE (!FALSE)
+#if __STDC_VERSION__ >= 199901L
+  #include <stdbool.h>
+#else
+  #define bool char
+  #define true 1
+  #define false 0
 #endif
 
 
@@ -88,7 +88,7 @@ typedef struct _SxcContextBinding {
 
 void* sxc_alloc(SxcContext* context, int size);
 void* sxc_error(SxcContext* context, const char* message_format, ...);
-int sxc_arg(SxcContext* context, int index, int is_required, SxcDataType type, SXC_DATA_DEST);
+int sxc_arg(SxcContext* context, int index, bool is_required, SxcDataType type, SXC_DATA_DEST);
 void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG);
 
 int sxc_value_get(SxcValue* value, SxcDataType type, SXC_DATA_DEST);
@@ -97,9 +97,9 @@ void sxc_value_set(SxcValue* value, SxcDataType type, SXC_DATA_ARG);
 SxcMap* sxc_map_new(SxcContext* context, void* map_type);
 void* sxc_map_newtype(SxcContext* context, const char* name, SxcLibFunc initialzier,
                       const SxcLibMethod* methods, const SxcLibProperty* properties);
-int sxc_map_intget(SxcMap* map, int key, int is_required, SxcDataType type, SXC_DATA_DEST);
+int sxc_map_intget(SxcMap* map, int key, bool is_required, SxcDataType type, SXC_DATA_DEST);
 void sxc_map_intset(SxcMap* map, int key, SxcDataType type, SXC_DATA_ARG);
-int sxc_map_strget(SxcMap* map, const char* key, int is_required, SxcDataType type, SXC_DATA_DEST);
+int sxc_map_strget(SxcMap* map, const char* key, bool is_required, SxcDataType type, SXC_DATA_DEST);
 void sxc_map_strset(SxcMap* map, const char* key, SxcDataType type, SXC_DATA_ARG);
 int sxc_map_length(SxcMap* map);
 void* sxc_map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
@@ -124,9 +124,9 @@ enum _SxcDataType {
   /* These are the primitive types.  They should be represented similarly
       between C and any scripting language. */
   sxc_null,
-  sxc_bool,
-  sxc_int,
-  sxc_double,
+  sxc_cbool,
+  sxc_cint,
+  sxc_cdouble,
 
   /* These are the script types.  Each scripting language has their own, perhaps
       multiple, implementation of them.  Libraries interact with these types
@@ -158,10 +158,9 @@ enum _SxcDataType {
 
 
 typedef union _SxcData {
-  /* TODO better convention for making these not keywords? (boolval? intd? ddouble?) */
-  char abool;
-  int aint;
-  double adouble;
+  bool cbool;
+  int cint;
+  double cdouble;
 
   /* HACK _pointer_store can be used to generically read/write to the pointer
       members below (due to the nature of C unions) */
@@ -185,7 +184,7 @@ typedef union _SxcData {
   } cchars;
 
   struct {
-    char* array;
+    bool* array;
     int length;
   } cbools;
 
