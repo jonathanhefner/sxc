@@ -362,6 +362,13 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
     target primivitve type (e.g. non-numeric strings targeting doubles) will be
     naturally converted to an array filled with all zero values */
 
+#define PRIMITIVES2PRIMITIVES(FROM_CTYPE, TO_CTYPE)                       \
+  *dest_len = value->data.c##FROM_CTYPE##s.length;                        \
+  *dest = sxc_alloc(value->context, sizeof(TO_CTYPE) * (*dest_len));      \
+  for (i = 0; i < *dest_len; i += 1) {                                    \
+    (*dest)[i] = (TO_CTYPE)value->data.c##FROM_CTYPE##s.array[i];         \
+  }
+
 #define ARRAY2ARRAY(FROM_CTYPE, TO_CTYPE)                                 \
   *dest_len = value->data.c##FROM_CTYPE##s.length;                        \
   *dest = sxc_alloc(value->context, sizeof(TO_CTYPE) * (*dest_len));      \
@@ -401,19 +408,11 @@ static int to_cbools(SxcValue* value, char** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cints:
-      *dest_len = value->data.cints.length;
-      *dest = sxc_alloc(value->context, sizeof(char) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = value->data.cints.array[i] != 0;
-      }
+      PRIMITIVES2PRIMITIVES(int, bool)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      *dest_len = value->data.cdoubles.length;
-      *dest = sxc_alloc(value->context, sizeof(char) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = value->data.cdoubles.array[i] != 0.0;
-      }
+      PRIMITIVES2PRIMITIVES(double, bool)
       return SXC_SUCCESS;
 
     case sxc_cstrings:
@@ -441,19 +440,11 @@ static int to_cints(SxcValue* value, int** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cbools:
-      *dest_len = value->data.cbools.length;
-      *dest = sxc_alloc(value->context, sizeof(int) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = (int)value->data.cbools.array[i];
-      }
+      PRIMITIVES2PRIMITIVES(bool, int)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      *dest_len = value->data.cdoubles.length;
-      *dest = sxc_alloc(value->context, sizeof(int) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = (int)value->data.cdoubles.array[i];
-      }
+      PRIMITIVES2PRIMITIVES(double, int)
       return SXC_SUCCESS;
 
     case sxc_cstrings:
@@ -481,19 +472,11 @@ static int to_cdoubles(SxcValue* value, double** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cbools:
-      *dest_len = value->data.cbools.length;
-      *dest = sxc_alloc(value->context, sizeof(double) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = (double)value->data.cbools.array[i];
-      }
+      PRIMITIVES2PRIMITIVES(bool, double)
       return SXC_SUCCESS;
 
     case sxc_cints:
-      *dest_len = value->data.cints.length;
-      *dest = sxc_alloc(value->context, sizeof(double) * (*dest_len));
-      for (i = 0; i < *dest_len; i += 1) {
-        (*dest)[i] = (double)value->data.cints.array[i];
-      }
+      PRIMITIVES2PRIMITIVES(int, double)
       return SXC_SUCCESS;
 
     case sxc_cstrings:
@@ -543,7 +526,8 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
 
 
 /* cleanup */
-#undef CSTRINGS2ARRAY
+#undef PRIMITIVES2PRIMITIVES
+#undef ARRAY2ARRAY
 #undef MAP2ARRAY
 
 
