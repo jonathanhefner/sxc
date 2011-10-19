@@ -229,7 +229,7 @@ static int to_string(SxcValue* value, SxcString** dest) {
 
 
 static int to_map(SxcValue* value, SxcMap** dest) {
-  SxcValue element;
+  SxcValue tmp_value;
   int i;
 
   switch (value->type) {
@@ -239,29 +239,29 @@ static int to_map(SxcValue* value, SxcMap** dest) {
 
       /* copying arrays into an SxcMap is a straightforward but verbose
           operation, so we use a macro to cover all our array types */
-      #define ARRAY2MAP(ARRAY_NAME, ELEMENT_TYPE, ELEMENT_DATA_NAME)        \
-        *dest = sxc_map_new(value->context, MAPTYPE_LIST);                  \
-        element.context = value->context;                                   \
-        element.type = ELEMENT_TYPE;                                        \
-        for (i = 0; i < value->data.ARRAY_NAME.length; i += 1) {            \
-          element.data.ELEMENT_DATA_NAME = value->data.ARRAY_NAME.array[i]; \
-          ((*dest)->binding->intset)(*dest, i, &element);                   \
+      #define ARRAY2MAP(FROM_CTYPE)                                             \
+        *dest = sxc_map_new(value->context, MAPTYPE_LIST);                      \
+        tmp_value.context = value->context;                                     \
+        tmp_value.type = sxc_c##FROM_CTYPE;                                     \
+        for (i = 0; i < value->data.c##FROM_CTYPE##s.length; i += 1) {          \
+          tmp_value.data.c##FROM_CTYPE = value->data.c##FROM_CTYPE##s.array[i]; \
+          ((*dest)->binding->intset)(*dest, i, &tmp_value);                     \
         }
 
     case sxc_cbools:
-      ARRAY2MAP(cbools, sxc_cbool, cbool)
+      ARRAY2MAP(bool)
       return SXC_SUCCESS;
 
     case sxc_cints:
-      ARRAY2MAP(cints, sxc_cint, cint)
+      ARRAY2MAP(int)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      ARRAY2MAP(cdoubles, sxc_cdouble, cdouble)
+      ARRAY2MAP(double)
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      ARRAY2MAP(cstrings, sxc_cstring, cstring)
+      ARRAY2MAP(string)
       return SXC_SUCCESS;
 
       /* clean up */
