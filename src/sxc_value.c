@@ -6,6 +6,9 @@
 
 
 
+typedef char* string; /* defined for convenience when using macros */
+
+
 /***** Conversion Functions *****/
 
 /* TODO? provide the following conversions when there's only one element in the
@@ -351,38 +354,38 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
 }
 
 
-/* converting cstring arrays and SxcMaps into primitive arrays is straightforward
-    but verbose, so we use macros to cover all the primitive array types */
+/* converting between arrays and SxcMaps is straightforward but verbose, so we
+    use macros to cover all the array types */
 /* NOTE these macros assume value, dest, and dest_len args, as well as tmp_value
     and i local variables */
 /* NOTE an array or SxcMap filled with values that have nothing to do with the
     target primivitve type (e.g. non-numeric strings targeting doubles) will be
     naturally converted to an array filled with all zero values */
 
-#define CSTRINGS2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                        \
-  *dest_len = value->data.cstrings.length;                                \
-  *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
+#define ARRAY2ARRAY(FROM_CTYPE, TO_CTYPE)                                 \
+  *dest_len = value->data.c##FROM_CTYPE##s.length;                        \
+  *dest = sxc_alloc(value->context, sizeof(TO_CTYPE) * (*dest_len));      \
   tmp_value.context = value->context;                                     \
-  tmp_value.type = sxc_cstring;                                           \
+  tmp_value.type = sxc_c##FROM_CTYPE;                                     \
   for (i = 0; i < *dest_len; i += 1) {                                    \
-    tmp_value.data.cstring = value->data.cstrings.array[i];               \
-    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                       \
-      (*dest)[i] = (ELEMENT_TYPE)0;                                       \
+    tmp_value.data.c##FROM_CTYPE = value->data.c##FROM_CTYPE##s.array[i]; \
+    if (!to_c##TO_CTYPE(&tmp_value, &((*dest)[i]))) {                     \
+      (*dest)[i] = (TO_CTYPE)0;                                           \
     }                                                                     \
   }
 
-#define MAP2ARRAY(ELEMENT_TYPE, CONVERT_FUNC)                             \
+#define MAP2ARRAY(TO_CTYPE)                                               \
   tmp_value.data.cint = sxc_map_length(value->data.map);                  \
   if (tmp_value.data.cint < 0) {                                          \
     return SXC_FAILURE;                                                   \
   }                                                                       \
   *dest_len = tmp_value.data.cint;                                        \
-  *dest = sxc_alloc(value->context, sizeof(ELEMENT_TYPE) * (*dest_len));  \
+  *dest = sxc_alloc(value->context, sizeof(TO_CTYPE) * (*dest_len));      \
   tmp_value.context = value->context;                                     \
   for (i = 0; i < *dest_len; i += 1) {                                    \
     ((value->data.map)->binding->intget)(value->data.map, i, &tmp_value); \
-    if (!CONVERT_FUNC(&tmp_value, &((*dest)[i]))) {                       \
-      (*dest)[i] = (ELEMENT_TYPE)0;                                       \
+    if (!to_c##TO_CTYPE(&tmp_value, &((*dest)[i]))) {                     \
+      (*dest)[i] = (TO_CTYPE)0;                                           \
     }                                                                     \
   }
 
@@ -414,11 +417,11 @@ static int to_cbools(SxcValue* value, char** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(char, to_cbool)
+      ARRAY2ARRAY(string, bool)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(char, to_cbool)
+      MAP2ARRAY(bool)
       return SXC_SUCCESS;
 
     default:
@@ -454,11 +457,11 @@ static int to_cints(SxcValue* value, int** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(int, to_cint)
+      ARRAY2ARRAY(string, int)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(int, to_cint)
+      MAP2ARRAY(int)
       return SXC_SUCCESS;
 
     default:
@@ -494,22 +497,17 @@ static int to_cdoubles(SxcValue* value, double** dest, int* dest_len) {
       return SXC_SUCCESS;
 
     case sxc_cstrings:
-      CSTRINGS2ARRAY(double, to_cdouble)
+      ARRAY2ARRAY(string, double)
       return SXC_SUCCESS;
 
     case sxc_map:
-      MAP2ARRAY(double, to_cdouble)
+      MAP2ARRAY(double)
       return SXC_SUCCESS;
 
     default:
       return SXC_FAILURE;
   }
 }
-
-
-/* cleanup */
-#undef CSTRINGS2ARRAY
-#undef MAP2ARRAY
 
 
 static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
@@ -522,57 +520,31 @@ static int to_cstrings(SxcValue* value, char*** dest, int* dest_len) {
       *dest = value->data.cstrings.array;
       return SXC_SUCCESS;
 
-      /* converting primitive arrays into cstring array is yet another
-          straightforward but verbose operation, so we use yet another macro */
-      #define ARRAY2CSTRINGS(ARRAY_NAME, ELEMENT_TYPE, ELEMENT_DATA_NAME)     \
-        *dest_len = value->data.ARRAY_NAME.length;                            \
-        *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));       \
-        tmp_value.context = value->context;                                   \
-        tmp_value.type = ELEMENT_TYPE;                                        \
-        for (i = 0; i < *dest_len; i += 1) {                                  \
-          tmp_value.data.ELEMENT_DATA_NAME = value->data.ARRAY_NAME.array[i]; \
-          if (!to_cstring(&tmp_value, &((*dest)[i]))) {                       \
-            (*dest)[i] = NULL;                                                \
-          }                                                                   \
-        }
-
     case sxc_cbools:
-      ARRAY2CSTRINGS(cbools, sxc_cbool, cbool)
+      ARRAY2ARRAY(bool, string)
       return SXC_SUCCESS;
 
     case sxc_cints:
-      ARRAY2CSTRINGS(cints, sxc_cint, cint)
+      ARRAY2ARRAY(int, string)
       return SXC_SUCCESS;
 
     case sxc_cdoubles:
-      ARRAY2CSTRINGS(cdoubles, sxc_cdouble, cdouble)
+      ARRAY2ARRAY(double, string)
       return SXC_SUCCESS;
 
-      /* cleanup */
-      #undef ARRAY2CSTRINGS
-
     case sxc_map:
-      tmp_value.data.cint = sxc_map_length(value->data.map);
-      if (tmp_value.data.cint < 0) {
-        return SXC_FAILURE;
-      }
-
-      *dest_len = tmp_value.data.cint;
-      *dest = sxc_alloc(value->context, sizeof(char*) * (*dest_len));
-      tmp_value.context = value->context;
-      for (i = 0; i < *dest_len; i += 1) {
-        ((value->data.map)->binding->intget)(value->data.map, i, &tmp_value);
-
-        if (!to_cstring(&tmp_value, &((*dest)[i]))) {
-          (*dest)[i] = NULL;
-        }
-      }
+      MAP2ARRAY(string)
       return SXC_SUCCESS;
 
     default:
       return SXC_FAILURE;
   }
 }
+
+
+/* cleanup */
+#undef CSTRINGS2ARRAY
+#undef MAP2ARRAY
 
 
 
