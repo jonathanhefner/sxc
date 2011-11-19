@@ -51,31 +51,40 @@ typedef struct _SxcLibProperty {
 
 /***** Binding Types *****/
 
+typedef struct _SxcStringBinding {
+  void (*to_cchars)(void* underlying, SxcValue* return_value);
+
+  int is_null_terminated;
+} SxcStringBinding;
+
+
 typedef struct _SxcMapBinding {
-  void (*intget)(SxcMap* map, int key, SxcValue* return_value);
-  void (*intset)(SxcMap* map, int key, SxcValue* value);
+  void (*intget)(void* underlying, int key, SxcValue* return_value);
+  void (*intset)(void* underlying, int key, SxcValue* value);
 
-  void (*strget)(SxcMap* map, const char* key, SxcValue* return_value);
-  void (*strset)(SxcMap* map, const char* key, SxcValue* value);
+  void (*strget)(void* underlying, const char* key, SxcValue* return_value);
+  void (*strset)(void* underlying, const char* key, SxcValue* value);
 
-  int (*length)(SxcMap* map);
-  void* (*iter)(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value);
+  int (*length)(void* underlying);
+  void* (*iter)(void* underlying, void* state, SxcValue* return_key, SxcValue* return_value);
 } SxcMapBinding;
 
 
 typedef struct _SxcFunctionBinding {
-  void (*invoke)(SxcFunc* func, SxcValue** args, int argcount, SxcValue* return_value);
+  void (*invoke)(void* underlying, SxcValue** args, int argcount, SxcValue* return_value);
 } SxcFuncBinding;
 
 
 typedef struct _SxcContextBinding {
-  void (*get_arg)(SxcContext* context, int index, SxcValue* return_value);
-  SxcString* (*string_intern)(SxcContext* context, const char* data, int length);
+  void (*get_arg)(void* underlying, int index, SxcValue* return_value);
+
+  void (*to_sstring)(const char* data, int length, SxcValue* return_value);
+
+  void (*map_new)(void* map_type, SxcValue* return_value);
   void* (*map_newtype)(SxcContext* context, const char* name, SxcLibFunc* initializer,
                         const SxcLibMethod* methods, const SxcLibProperty* properties);
-  SxcMap* (*map_new)(SxcContext* context, void* map_type);
-  SxcFunc* (*func_wrap)(SxcContext* context, SxcLibFunc func);
 
+  void (*to_sfunc)(SxcLibFunc* func, SxcValue* return_value);
 } SxcContextBinding;
 
 
@@ -111,7 +120,7 @@ void sxc_func_invoke(SxcFunc* func, int argcount, SxcDataType return_type, SXC_D
 /***** Binding Prototypes *****/
 
 void sxc_load(SxcContext* context);
-void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunc func);
+void sxc_try(SxcContext* context, void* underlying, SxcContextBinding* binding, int argcount, SxcLibFunc func);
 void sxc_finally(SxcContext* context);
 
 
@@ -119,41 +128,76 @@ void sxc_finally(SxcContext* context);
 /***** Type Definitions *****/
 
 enum _SxcDataType {
-  /* TODO? would these enum values be more usable/obvious as ALL CAPS? */
-
-  /* These are the primitive types.  They should be represented similarly
+  /* These are the Primitive Types.  They should be represented similarly
       between C and any scripting language. */
   sxc_null,
   sxc_cbool,
   sxc_cint,
   sxc_cdouble,
 
-  /* These are the script types.  Each scripting language has their own, perhaps
-      multiple, implementation of them.  Libraries interact with these types
-      though sxc_[string|map|function] methods. */
+  /* C LIBRARIES ONLY: These are the Interface Types.  They represent SxcString,
+      SxcMap, and SxcFunc, respectively.  Non-primitive values that come from
+      the scripting environment will be one of these types, unless other types
+      are specifically requested (see C Types below). */
   sxc_string,
   sxc_map,
   sxc_func,
 
-  /* These are the C types.  Each is represented by a common C data type (plus
-      an int length, in some cases), and can be converted to one of the script
-      types using sxc_value_intern().  Language bindings should not worry about
-      these types, as any data the binding recieves will already be converted
-      to a script type. */
-  sxc_cstring,   /* char* <=> SxcString */
-  sxc_cpointer,  /* void* <=> SxcString */
-  sxc_cfunc,     /* SxcLibFunc => SxcFunc */
-  sxc_cchars,    /* char* + int length <=> SxcString */
-  sxc_cbools,    /* char* + int length <=> SxcMap */
-  sxc_cints,     /* int* + int length <=> SxcMap */
-  sxc_cdoubles,  /* double* + int length <=> SxcMap */
-  sxc_cstrings   /* char** + int length <=> SxcMap */
+  /* LANGUAGE BINDINGS ONLY: These are the Script Types.  Language bindings
+      passing non-primitive values to and from the C environment will use these
+      types instead of interacting with sxc_string, sxc_map, and sxc_func
+      directly.  Each type is represented by a void pointer to an arbitrary
+      underlying data structure followed by a pointer to an appropriate
+      Sxc*****Binding struct.
 
-  /* These are the meta types.  They don't represent actual data types, but add
-      capability to the value type system. */
+      Note: there is one exception to this.  Language bindings need to use the
+      C Convenience Type sxc_cchars (see next section) to implement the
+      SxcStringBinding.to_cchars() function. */
+  sxc_sstring,   /* void* + SxcStringBinding* <=> SxcString* */
+  sxc_smap,      /* void* + SxcMapBinding* <=> SxcMap* */
+  sxc_sfunc,     /* void* + SxcFuncBinding* <=> SxcFunc* */
+
+  /* C LIBRARIES ONLY: These are the C Convenience Types.  They are for passing
+      non-primitive values to and from the scripting environment.  Each is
+      represented by a common C data type, plus an int length in some cases. */
+  sxc_cstring,   /* char* <=> SxcString* */
+  sxc_cpointer,  /* void* <=> SxcString* */
+  sxc_cfunc,     /* SxcLibFunc* => SxcFunc* */
+  sxc_cchars,    /* char* + int length <=> SxcString* */
+  sxc_cbools,    /* char* + int length <=> SxcMap* */
+  sxc_cints,     /* int* + int length <=> SxcMap* */
+  sxc_cdoubles,  /* double* + int length <=> SxcMap* */
+  sxc_cstrings   /* char** + int length <=> SxcMap* */
+
+  /* C LIBRARIES ONLY: These are the meta types.  They don't represent actual
+      data types, but add capability to the value type system. */
   #define sxc_value (-1)
           /* indicates that the associated data is a SxcValue* and the actual
-              data should be extracted from that struct */
+              data should be extracted from the referenced struct */
+};
+
+
+struct _SxcString {
+  void* underlying;
+  SxcStringBinding* binding;
+  SxcContext* context;
+
+  char* data;
+  int length;
+};
+
+
+struct _SxcMap {
+  void* underlying;
+  SxcMapBinding* binding;
+  SxcContext* context;
+};
+
+
+struct _SxcFunc {
+  void* underlying;
+  SxcFuncBinding* binding;
+  SxcContext* context;
 };
 
 
@@ -169,6 +213,25 @@ typedef union _SxcData {
   SxcString* string;
   SxcMap* map;
   SxcFunc* func;
+
+  /* HACK _binding_store can be used to generically read/write to the script
+      type members below (due to the nature of C unions) */
+  struct { void* underlying; void* binding; } _binding_store;
+
+  struct {
+    void* underlying;
+    SxcStringBinding* binding;
+  } sstring;
+
+  struct {
+    void* underlying;
+    SxcMapBinding* binding;
+  } smap;
+
+  struct {
+    void* underlying;
+    SxcFuncBinding* binding;
+  } sfunc;
 
   char* cstring;
   SxcLibFunc* cfunc;
@@ -212,28 +275,6 @@ struct _SxcValue {
 };
 
 
-struct _SxcString {
-  SxcContext* context;
-  void* underlying;
-
-  char* data;
-  int length;
-  int is_terminated;
-};
-
-
-struct _SxcMap {
-  SxcContext* context;
-  SxcMapBinding* binding;
-  void* underlying;
-};
-
-
-struct _SxcFunc {
-  SxcContext* context;
-  SxcFuncBinding* binding;
-  void* underlying;
-};
 
 
 typedef struct _SxcMemoryChunk {
@@ -251,8 +292,8 @@ typedef struct _SxcMemoryChunk {
 
 struct _SxcContext {
   /* public */
-  SxcContextBinding* binding;
   void* underlying;
+  SxcContextBinding* binding;
   int argcount;
   SxcValue return_value;
   int has_error;

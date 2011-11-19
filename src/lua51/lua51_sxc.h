@@ -13,16 +13,13 @@
 
 
 int l_libfunc_invoke(lua_State* L);
-
 int libfunc_invoke(SxcLibFunc func, lua_State* L, const int argcount);
-SxcString* get_string(SxcContext* context, int index);
-SxcMap* get_map(SxcContext* context, int index);
-SxcFunc* get_func(SxcContext* context, int index);
-void get_value(SxcContext* context, int index, SxcValue* return_value);
-void pop_value(SxcContext* context, SxcValue* return_value);
-void push_value(SxcContext* context, SxcValue* value);
+void get_value(int index, SxcValue* return_value);
+void pop_value(SxcValue* return_value);
+void push_value(SxcValue* value);
 
 
+extern SxcStringBinding STRING_BINDING;
 extern SxcMapBinding MAP_BINDING;
 extern SxcFuncBinding FUNC_BINDING;
 extern SxcContextBinding CONTEXT_BINDING;

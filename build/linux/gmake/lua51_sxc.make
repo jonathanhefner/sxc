@@ -67,6 +67,7 @@ OBJECTS := \
 	$(OBJDIR)/lua51_sxc_map.o \
 	$(OBJDIR)/lua51_sxc_context.o \
 	$(OBJDIR)/lua51_sxc_func.o \
+	$(OBJDIR)/lua51_sxc_string.o \
 	$(OBJDIR)/lua51_sxc.o \
 
 RESOURCES := \
@@ -135,6 +136,9 @@ $(OBJDIR)/lua51_sxc_context.o: ../../../src/lua51/lua51_sxc_context.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/lua51_sxc_func.o: ../../../src/lua51/lua51_sxc_func.c
+	@echo $(notdir $<)
+	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
+$(OBJDIR)/lua51_sxc_string.o: ../../../src/lua51/lua51_sxc_string.c
 	@echo $(notdir $<)
 	$(SILENT) $(CC) $(CFLAGS) -o "$@" -c "$<"
 $(OBJDIR)/lua51_sxc.o: ../../../src/lua51/lua51_sxc.c

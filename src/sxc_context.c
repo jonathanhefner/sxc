@@ -22,7 +22,8 @@
 void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value);
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
-void sxc_value_intern(SxcValue* value);
+void sxc_value_snormalize(SxcValue* value);
+void sxc_value_cnormalize(SxcValue* value);
 
 
 
@@ -161,6 +162,9 @@ void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_t
       /* sxc_string */    "a string",
       /* sxc_map */       "a map",
       /* sxc_func */      "a function",
+      /* sxc_sstring */   "a string",
+      /* sxc_smap */      "a map",
+      /* sxc_sfunc */     "a function",
       /* sxc_cstring */   "a string",
       /* sxc_cpointer */  "a reference to a C struct",
       /* sxc_cfunc */     "a C function",
@@ -178,6 +182,9 @@ void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_t
       /* sxc_string */    "a string",
       /* sxc_map */       "a map",
       /* sxc_func */      "a function",
+      /* sxc_sstring */   "a string",
+      /* sxc_smap */      "a map",
+      /* sxc_sfunc */     "a function",
       /* sxc_cstring */   "a C string",
       /* sxc_cpointer */  "a C pointer",
       /* sxc_cfunc */     "a C function",
@@ -222,6 +229,9 @@ int sxc_arg(SxcContext* context, int index, bool is_required, SxcDataType type, 
   if (index < context->argcount) {
     value.context = context;
     (context->binding->get_arg)(context, index, &value);
+    if (type == sxc_value) {
+      sxc_value_cnormalize(&value);
+    }
 
     va_start(varg, type);
     retval = sxc_value_getv(&value, type, varg);
@@ -247,11 +257,11 @@ void sxc_return(SxcContext* context, SxcDataType type, SXC_DATA_ARG) {
 }
 
 
-void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, int argcount, SxcLibFunc func) {
+void sxc_try(SxcContext* context, void* underlying, SxcContextBinding* binding, int argcount, SxcLibFunc func) {
   JMP_BUF jmpbuf;
 
-  context->binding = binding;
   context->underlying = underlying;
+  context->binding = binding;
   context->argcount = argcount;
   context->return_value = (SxcValue){context, sxc_null, {0}};
   context->_jmpbuf = &jmpbuf;
@@ -261,7 +271,7 @@ void sxc_try(SxcContext* context, SxcContextBinding* binding, void* underlying, 
     (func)(context);
   }
 
-  sxc_value_intern(&context->return_value);
+  sxc_value_snormalize(&context->return_value);
 }
 
 

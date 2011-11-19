@@ -4,8 +4,8 @@
 void sxc_typeerror(SxcContext* context, char* value_name, SxcDataType expected_type, SxcValue* actual_value);
 int sxc_value_getv(SxcValue* value, SxcDataType type, va_list varg);
 void sxc_value_setv(SxcValue* value, SxcDataType type, va_list varg);
-void sxc_value_intern(SxcValue* value);
-
+void sxc_value_snormalize(SxcValue* value);
+void sxc_value_cnormalize(SxcValue* value);
 
 
 #include <stdio.h>
@@ -47,17 +47,21 @@ printf("done skipping dest\n");
     type = va_arg(varg, SxcDataType);
     sxc_value_setv(arg_valueptrs[i], type, varg);
 printf("done setting arg %d\n", i);
-    sxc_value_intern(arg_valueptrs[i]);
+    sxc_value_snormalize(arg_valueptrs[i]);
 printf("done interning arg %d\n", i);
   }
   va_end(varg);
 
   /* invoke function */
-  (function->binding->invoke)(function, arg_valueptrs, argcount, &return_value);
+  (function->binding->invoke)(function->underlying, arg_valueptrs, argcount, &return_value);
 printf("done invoking func\n");
 
   /* extract return_value to dest */
   if (return_type != sxc_null) {
+    if (return_type == sxc_value) {
+      sxc_value_cnormalize(&return_value);
+    }
+
     va_start(varg, return_type);
     has_return_value = sxc_value_getv(&return_value, return_type, varg);
 printf("done extracting return_value\n");

@@ -1,47 +1,49 @@
 #include "lua51_sxc.h"
 
 
-static void map_intget(SxcMap* map, int key, SxcValue* return_value) {
-  lua_State* L = (lua_State*)map->context->underlying;
+static void map_intget(void* underlying, int key, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
   key += 1; /* adjust for 1-based indexing */
 
   lua_pushinteger(L, (lua_Integer)key);
   luaL_checkstack(L, 1 + 2, "");
-  lua_gettable(L, PTR2INT(map->underlying));
-  pop_value(map->context, return_value);
+  lua_gettable(L, PTR2INT(underlying));
+  pop_value(return_value);
 }
 
 
-static void map_intset(SxcMap* map, int key, SxcValue* value) {
-  lua_State* L = (lua_State*)map->context->underlying;
+static void map_intset(void* underlying, int key, SxcValue* value) {
+  lua_State* L = (lua_State*)(value->context->underlying);
   key += 1; /* adjust for 1-based indexing */
 
   lua_pushinteger(L, (lua_Integer)key);
-  push_value(map->context, value);
-  lua_settable(L, PTR2INT(map->underlying));
+  push_value(value);
+  lua_settable(L, PTR2INT(underlying));
 }
 
 
-static void map_strget(SxcMap* map, const char* key, SxcValue* return_value) {
-  lua_State* L = (lua_State*)map->context->underlying;
+static void map_strget(void* underlying, const char* key, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
+
   luaL_checkstack(L, 1 + 2, "");
-  lua_getfield(L, PTR2INT(map->underlying), key);
-  pop_value(map->context, return_value);
+  lua_getfield(L, PTR2INT(underlying), key);
+  pop_value(return_value);
 }
 
 
-static void map_strset(SxcMap* map, const char* key, SxcValue* value) {
-  lua_State* L = (lua_State*)map->context->underlying;
-  push_value(map->context, value);
-  lua_setfield(L, PTR2INT(map->underlying), key);
+static void map_strset(void* underlying, const char* key, SxcValue* value) {
+  lua_State* L = (lua_State*)(value->context->underlying);
+
+  push_value(value);
+  lua_setfield(L, PTR2INT(underlying), key);
 }
 
 
-static void* map_iter(SxcMap* map, void* state, SxcValue* return_key, SxcValue* return_value) {
-  lua_State* L = (lua_State*)map->context->underlying;
+static void* map_iter(void* underlying, void* state, SxcValue* return_key, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
 
 printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
-              PTR2INT(map->underlying), PTR2INT(state), lua_typename(L, lua_type(L, PTR2INT(state))));
+              PTR2INT(underlying), PTR2INT(state), lua_typename(L, lua_type(L, PTR2INT(state))));
   luaL_checkstack(L, 2 + 2, "");
 
   if (state == NULL) {
@@ -50,16 +52,17 @@ printf("in map_iter, mapindex: %d, state:%d, statetype:%s\n",
     lua_pushvalue(L, PTR2INT(state));
   }
 
-  if (lua_next(L, PTR2INT(map->underlying))) {
-    get_value(map->context, -2, return_key);
+  if (lua_next(L, PTR2INT(underlying))) {
+    get_value(-2, return_key);
     state = INT2PTR(lua_gettop(L) - 2 + 1);
 
     switch (return_key->type) {
       case sxc_cint:
         /* adjust list keys to 0-based indexing */
         return_key->data.cint -= 1;
-      case sxc_string:
-        pop_value(map->context, return_value);
+      /* fall through */
+      case sxc_sstring:
+        pop_value(return_value);
 printf("leaving map_iter with new state:%d\n", PTR2INT(state));
         break;
 

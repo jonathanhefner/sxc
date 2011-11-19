@@ -1,16 +1,17 @@
 #include "lua51_sxc.h"
 
-static void context_get_arg(SxcContext* context, int index, SxcValue* return_value) {
-  get_value(context, index + 1, return_value);
+
+static void get_arg(void* underlying, int index, SxcValue* return_value) {
+  get_value(index + 1, return_value);
 }
 
 
-static SxcString* string_intern(SxcContext* context, const char* data, int length) {
-  lua_State* L = (lua_State*)context->underlying;
+static void to_sstring(const char* data, int length, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
 
   luaL_checkstack(L, 1 + 2, "");
   lua_pushlstring(L, data, length);
-  return get_string(context, -1);
+  get_value(-1, return_value);
 }
 
 
@@ -200,14 +201,13 @@ printf("done map_newtype\n");
 }
 
 
-static SxcMap* map_new(SxcContext* context, void* map_type) {
-  lua_State* L = (lua_State*)context->underlying;
+static void map_new(void* map_type, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
 
   luaL_checkstack(L, 4 + 2, "");
 
   if (map_type == MAPTYPE_HASH || map_type == MAPTYPE_LIST) {
     lua_newtable(L);
-    return get_map(context, -1);
   } else {
     /* TODO actually invoke the ctor with some given args, instead of simply
         returning an un-initialized table with associated metatable */
@@ -219,22 +219,22 @@ static SxcMap* map_new(SxcContext* context, void* map_type) {
     lua_getupvalue(L, -1, 1); /* put metatable on stack */
     lua_setmetatable(L, -4);
     lua_pop(L, 2);
-
-    return get_map(context, -1);
   }
+
+  get_value(-1, return_value);
 }
 
 
-static SxcFunc* function_wrap(SxcContext* context, SxcLibFunc func) {
-  lua_State* L = (lua_State*)context->underlying;
+static void to_sfunc(SxcLibFunc* func, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
 
   luaL_checkstack(L, 2 + 2, "");
   lua_pushlightuserdata(L, func);
   lua_pushcclosure(L, l_libfunc_invoke, 1);
-  return get_func(context, -1);
+  get_value(-1, return_value);
 }
 
 
 SxcContextBinding CONTEXT_BINDING = {
-  context_get_arg, string_intern, map_newtype, map_new, function_wrap
+  get_arg, to_sstring, map_new, map_newtype, to_sfunc
 };

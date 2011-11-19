@@ -1,5 +1,6 @@
 #include "lua51_sxc.h"
 
+
 int luaopen_lua51_sxc(lua_State *L) {
 printf("in luaopen\n");
 
@@ -28,8 +29,8 @@ int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
   SxcContext context;
   const int final_top = lua_gettop(L) + 1;
 
-  sxc_try(&context, &CONTEXT_BINDING, L, argcount, func);
-  push_value(&context, &context.return_value);
+  sxc_try(&context, L, &CONTEXT_BINDING, argcount, func);
+  push_value(&context.return_value);
   if (final_top < lua_gettop(L)) {
     /* NOTE after this point no SxcStrings, SxcMaps, or SxcFuncs are valid,
       because their index into the stack may be one replaced/popped below */
@@ -46,57 +47,13 @@ int libfunc_invoke(SxcLibFunc* func, lua_State* L, const int argcount) {
 
 
 
-SxcString* get_string(SxcContext* context, int index) {
-  lua_State* L = (lua_State*)context->underlying;
-  SxcString* s = sxc_alloc(context, sizeof(SxcString));
-  size_t length;
-
-  if (index < 0) {
-    index += lua_gettop(L) + 1;
-  }
-
-  s->context = context;
-  s->underlying = INT2PTR(index);
-  s->data = (char*)lua_tolstring(L, index, &length);
-  s->length = (int)length;
-  s->is_terminated = true;
-  return s;
-}
-
-
-SxcMap* get_map(SxcContext* context, int index) {
-  lua_State* L = (lua_State*)context->underlying;
-  SxcMap* m = sxc_alloc(context, sizeof(SxcMap));
-
-  if (index < 0) {
-    index += lua_gettop(L) + 1;
-  }
-
-  m->context = context;
-  m->binding = &MAP_BINDING;
-  m->underlying = INT2PTR(index);
-  return m;
-}
-
-
-SxcFunc* get_func(SxcContext* context, int index) {
-  lua_State* L = (lua_State*)context->underlying;
-  SxcFunc* f = sxc_alloc(context, sizeof(SxcFunc));
-
-  if (index < 0) {
-    index += lua_gettop(L) + 1;
-  }
-
-  f->context = context;
-  f->binding = &FUNC_BINDING;
-  f->underlying = INT2PTR(index);
-  return f;
-}
-
-
-void get_value(SxcContext* context, int index, SxcValue* return_value) {
-  lua_State* L = (lua_State*)context->underlying;
+void get_value(int index, SxcValue* return_value) {
+  lua_State* L = (lua_State*)(return_value->context->underlying);
   double number;
+
+  if (index < 0) {
+    index += lua_gettop(L) + 1;
+  }
 
   switch (lua_type(L, index)) {
     default:
@@ -118,30 +75,32 @@ void get_value(SxcContext* context, int index, SxcValue* return_value) {
       return;
 
     case LUA_TSTRING:
-      sxc_value_set(return_value, sxc_string, get_string(context, index));
+      sxc_value_set(return_value, sxc_sstring, INT2PTR(index), &STRING_BINDING);
       return;
 
     case LUA_TTABLE:
-      sxc_value_set(return_value, sxc_map, get_map(context, index));
+      sxc_value_set(return_value, sxc_smap, INT2PTR(index), &MAP_BINDING);
       return;
 
     case LUA_TFUNCTION:
-      sxc_value_set(return_value, sxc_func, get_func(context, index));
+      sxc_value_set(return_value, sxc_sfunc, INT2PTR(index), &FUNC_BINDING);
       return;
   }
 }
 
 
-void pop_value(SxcContext* context, SxcValue* return_value) {
-  get_value(context, -1, return_value);
+void pop_value(SxcValue* return_value) {
+  get_value(-1, return_value);
 
   /* pop values that don't need to remain on the stack to use (i.e. primitives) */
   switch (return_value->type) {
     case sxc_null:
+      /* NOTE if type is sxc_null, it's because there's a nil value at -1
+          (not because get_value() tried to retrieve a non-existent value) */
     case sxc_cbool:
     case sxc_cint:
     case sxc_cdouble:
-      lua_pop((lua_State*)context->underlying, 1);
+      lua_pop((lua_State*)(return_value->context->underlying), 1);
       break;
 
     default:
@@ -151,8 +110,8 @@ void pop_value(SxcContext* context, SxcValue* return_value) {
 
 
 #include <stdio.h>
-void push_value(SxcContext* context, SxcValue* value) {
-  lua_State* L = (lua_State*)context->underlying;
+void push_value(SxcValue* value) {
+  lua_State* L = (lua_State*)(value->context->underlying);
 
 printf("in push_value, type:%d\n", value->type);
 
@@ -174,16 +133,16 @@ printf("in push_value, type:%d\n", value->type);
       lua_pushnumber(L, (lua_Number)value->data.cdouble);
       return;
 
-    case sxc_string:
-      lua_pushvalue(L, PTR2INT(value->data.string->underlying));
+    case sxc_sstring:
+      lua_pushvalue(L, PTR2INT(value->data.sstring.underlying));
       return;
 
-    case sxc_map:
-      lua_pushvalue(L, PTR2INT(value->data.map->underlying));
+    case sxc_smap:
+      lua_pushvalue(L, PTR2INT(value->data.smap.underlying));
       return;
 
-    case sxc_func:
-      lua_pushvalue(L, PTR2INT(value->data.func->underlying));
+    case sxc_sfunc:
+      lua_pushvalue(L, PTR2INT(value->data.sfunc.underlying));
       return;
   }
 }
