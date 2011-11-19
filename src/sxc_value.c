@@ -185,6 +185,9 @@ static int to_cbool(SxcValue* value, bool* dest) {
     case sxc_cstring:
       return FROM_DOUBLE(cchars_to_cdouble(value->data.cstring, -1, true, &cdouble));
 
+    case sxc_cchars:
+      return FROM_DOUBLE(cchars_to_cdouble(value->data.cchars.array, value->data.cchars.length, false, &cdouble));
+
         /* macro be gone! */
         #undef FROM_DOUBLE
 
@@ -230,6 +233,9 @@ static int to_cint(SxcValue* value, int* dest) {
     case sxc_cstring:
       return FROM_DOUBLE(cchars_to_cdouble(value->data.cstring, -1, true, &cdouble));
 
+    case sxc_cchars:
+      return FROM_DOUBLE(cchars_to_cdouble(value->data.cchars.array, value->data.cchars.length, false, &cdouble));
+
         /* macro be gone! */
         #undef FROM_DOUBLE
 
@@ -267,6 +273,9 @@ static int to_cdouble(SxcValue* value, double* dest) {
 
     case sxc_cstring:
       return cchars_to_cdouble(value->data.cstring, -1, true, dest);
+
+    case sxc_cchars:
+      return cchars_to_cdouble(value->data.cchars.array, value->data.cchars.length, false, dest);
 
     default:
       return SXC_FAILURE;
@@ -615,9 +624,15 @@ static int to_cchars(SxcValue* value, char** dest, int* dest_len) {
       *dest_len = strlen(value->data.cstring);
       return SXC_SUCCESS;
 
-    /* TODO? try to convert to cstring in the default case... There is ambiguity
-        when converting, say, a double: does cchars mean the double stringified
-        or an array of 8 bytes containing the binary value of the double? */
+    case sxc_cbool:
+      return cbool_to_cchars(value->data.cbool, dest, dest_len);
+
+    case sxc_cint:
+      return cint_to_cchars(value->context, value->data.cint, dest, dest_len);
+
+    case sxc_cdouble:
+      return cdouble_to_cchars(value->context, value->data.cdouble, dest, dest_len);
+
     default:
       return SXC_FAILURE;
   }
